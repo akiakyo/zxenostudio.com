@@ -56,20 +56,20 @@ export function createIntroLogo(host: HTMLElement) {
     40,
   );
   camera.position.z = 8;
-  scene.add(new THREE.HemisphereLight(0x8cf43a, 0x000000, 2));
+  scene.add(new THREE.HemisphereLight(0x8fd45f, 0x000000, 2));
   const key = new THREE.DirectionalLight(0xffffff, 4);
   key.position.set(-3, 5, 6);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0x8cf43a, 5);
+  const rim = new THREE.DirectionalLight(0x8fd45f, 5);
   rim.position.set(4, 1, -3);
   scene.add(rim);
   const face = new THREE.MeshStandardMaterial({
-    color: 0x080c06,
+    color: 0x0f1e09,
     roughness: 0.3,
     metalness: 0.45,
   });
   const edge = new THREE.MeshStandardMaterial({
-    color: 0x56c506,
+    color: 0x55a630,
     roughness: 0.26,
     metalness: 0.5,
   });

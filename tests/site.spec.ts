@@ -11,7 +11,7 @@ test("logo portal reveals site, remembers session, and can be skipped", async ({
   await expect(page.locator("main")).not.toHaveAttribute("inert", "");
   await page.reload();
   await expect(page.locator(".intro")).toHaveCount(0);
-  await page.evaluate(()=>sessionStorage.removeItem('zxeno-intro-3d'));
+  await page.evaluate(() => sessionStorage.removeItem("zxeno-intro-3d"));
   await page.reload();
   await expect(page.locator(".intro")).toBeVisible();
   await page.locator(".intro-skip").click();
@@ -54,15 +54,15 @@ test("responsive composition, lazy media, WebGL and film controls", async ({
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator("#about").scrollIntoViewIfNeeded();
   await page.screenshot({ path: "test-results/about-desktop.png" });
-  await page.locator('#contact').scrollIntoViewIfNeeded();
-  await expect(page.locator('#replay-intro')).toHaveCount(0);
-  await expect(page.getByRole('link',{name:'Back to top'})).toHaveCount(0);
-  await expect(page.locator('.team-member .lucide-mail')).toHaveCount(10);
-  await expect(page.locator('.studio-address .lucide-map-pin')).toHaveCount(1);
-  await page.screenshot({path:'test-results/footer-desktop.png'});
-  await page.setViewportSize({width:390,height:844});
-  await page.locator('#contact').scrollIntoViewIfNeeded();
-  await page.screenshot({path:'test-results/footer-mobile.png'});
+  await page.locator("#contact").scrollIntoViewIfNeeded();
+  await expect(page.locator("#replay-intro")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Back to top" })).toHaveCount(0);
+  await expect(page.locator(".team-member .lucide-mail")).toHaveCount(10);
+  await expect(page.locator(".studio-address .lucide-map-pin")).toHaveCount(1);
+  await page.screenshot({ path: "test-results/footer-desktop.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("#contact").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/footer-mobile.png" });
   await page.locator('[data-film="0"]').first().click();
   await expect(page.locator("#film-dialog")).toBeVisible();
   await expect(page.locator("#film-player")).toHaveJSProperty("paused", false);
@@ -132,4 +132,89 @@ test("in-page navigation never puts a fragment in the address bar", async ({
   await page.goto("/#team");
   await expect(page.locator("#team")).toBeInViewport();
   expect(new URL(page.url()).hash).toBe("");
+});
+test("theme toggle switches, persists, and follows the system by default", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("zxeno-intro-3d", "seen"),
+  );
+  // No stored choice: the system preference decides.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("#theme-toggle .icon-dark")).toBeVisible();
+  await expect(page.locator("#theme-toggle .icon-light")).toBeHidden();
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("#theme-toggle .icon-light")).toBeVisible();
+
+  // An explicit choice wins over the system and survives a reload.
+  const toggle = page.locator("#theme-toggle");
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("aria-label", "Switch to light mode");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  // Section tones resolve per theme rather than staying frozen.
+  const hero = page.locator("#top");
+  await expect(hero).toHaveCSS("background-color", "rgb(16, 23, 16)");
+  await toggle.click();
+  await expect(hero).toHaveCSS("background-color", "rgb(242, 241, 236)");
+});
+test("themes differ only in colour, never in layout or typography", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("zxeno-intro-3d", "seen");
+    localStorage.setItem("zxeno-theme", "light");
+  });
+  await page.goto("/");
+  const PROPS = [
+    "fontFamily",
+    "fontSize",
+    "fontWeight",
+    "lineHeight",
+    "letterSpacing",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "marginTop",
+    "marginBottom",
+    "marginLeft",
+    "marginRight",
+    "width",
+    "height",
+    "display",
+    "position",
+    "gap",
+    "borderTopWidth",
+    "borderBottomWidth",
+    "borderRadius",
+    "opacity",
+    "textTransform",
+    "transitionTimingFunction",
+  ];
+  const snap = () =>
+    page.evaluate(
+      (props) =>
+        [...document.querySelectorAll("body *")]
+          // The toggle's own icons are meant to swap.
+          .filter((el) => !el.closest(".theme-toggle"))
+          .map((el) => {
+            const cs = getComputedStyle(el);
+            return props.map((p) => cs[p]).join("|");
+          }),
+      PROPS,
+    );
+  const light = await snap();
+  await page.locator("#theme-toggle").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const dark = await snap();
+  expect(dark).toEqual(light);
 });

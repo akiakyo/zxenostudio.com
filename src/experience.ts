@@ -50,6 +50,51 @@ export function setupExperience() {
       focusSection(landing);
     }
   }
+  // Theme: an explicit choice wins and is remembered; with no choice stored the
+  // site follows the system and keeps following it if the system flips.
+  const root = document.documentElement;
+  const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+  const themeToggle =
+    document.querySelector<HTMLButtonElement>("#theme-toggle")!;
+  const themeMeta = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"]',
+  );
+  let storedTheme: string | null = null;
+  try {
+    storedTheme = localStorage.getItem("zxeno-theme");
+  } catch {}
+  function applyTheme(dark: boolean) {
+    root.dataset.theme = dark ? "dark" : "light";
+    themeToggle.setAttribute("aria-pressed", String(dark));
+    themeToggle.setAttribute(
+      "aria-label",
+      dark ? "Switch to light mode" : "Switch to dark mode",
+    );
+    if (themeMeta)
+      themeMeta.content =
+        getComputedStyle(root).getPropertyValue("--surface").trim() ||
+        (dark ? "#101710" : "#f2f1ec");
+  }
+  applyTheme(storedTheme ? storedTheme === "dark" : darkQuery.matches);
+  themeToggle.addEventListener(
+    "click",
+    () => {
+      const dark = root.dataset.theme !== "dark";
+      storedTheme = dark ? "dark" : "light";
+      try {
+        localStorage.setItem("zxeno-theme", storedTheme);
+      } catch {}
+      applyTheme(dark);
+    },
+    { signal },
+  );
+  darkQuery.addEventListener(
+    "change",
+    () => {
+      if (!storedTheme) applyTheme(darkQuery.matches);
+    },
+    { signal },
+  );
   const videos = [
     ...document.querySelectorAll<HTMLVideoElement>("video[data-src]"),
   ];

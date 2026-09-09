@@ -13,10 +13,30 @@ import {
   Pause,
   Volume2,
   VolumeX,
+  Sun,
+  Moon,
 } from "lucide-react";
+
+/* The ZXENO mark, inline so it takes the colour of whatever tone it sits on. */
+function Mark({ size = 29, height = 30 }: { size?: number; height?: number }) {
+  return (
+    <svg
+      className="brand-mark"
+      viewBox="0 0 1560 1600"
+      width={size}
+      height={height}
+      aria-hidden="true"
+    >
+      <path
+        fill="currentColor"
+        d="M0 0H456V456L908 980V984H456L444 975 0 462ZM0 1460L456 980V1600H0ZM1104 0H1560V621H1104ZM648 615H1104L1560 1140V1600H1104V1144Z"
+      />
+    </svg>
+  );
+}
 export function Hero() {
   return (
-    <section className="hero" id="top" data-tone="green">
+    <section className="hero" id="top" data-tone="paper">
       <div className="hero-kicker eyebrow">
         <Plus className="hero-registration" aria-hidden="true" />
         <span>Independent creative studio</span>
@@ -40,7 +60,9 @@ export function Hero() {
           href="#work"
           aria-label="Explore selected work"
         >
-          <span className="scroll-icon"><ArrowDown aria-hidden="true" /></span>
+          <span className="scroll-icon">
+            <ArrowDown aria-hidden="true" />
+          </span>
           <span>Explore work</span>
         </a>
         <span className="eyebrow">
@@ -72,7 +94,7 @@ export function Hero() {
 
 export function Creative() {
   return (
-    <section className="creative" id="creative" data-tone="green">
+    <section className="creative" id="creative" data-tone="paper">
       <div className="section-top eyebrow">
         <span>The creative engine</span>
         <span>From the first idea to the final frame</span>
@@ -183,7 +205,7 @@ export function About() {
         POSSIBILITIES<span>.</span>
       </h2>
       <div className="about-copy">
-        <img src="/assets/mark.svg" alt="ZXENO mark" width="130" height="134" />
+        <Mark size={130} height={134} />
         <div>
           <p>Good work starts with a point of view.</p>
           <p>
@@ -345,7 +367,7 @@ export function Screening() {
 
 export function Contact() {
   return (
-    <section id="contact" className="contact" data-tone="green">
+    <section id="contact" className="contact" data-tone="paper">
       <div className="section-top eyebrow">
         <span>Your next project</span>
         <span>Good things start with a conversation</span>
@@ -362,7 +384,14 @@ export function Contact() {
         <a className="text-link" href="mailto:zxenostudio@gmail.com">
           <Mail aria-hidden="true" /> zxenostudio@gmail.com
         </a>
-        <address className="studio-address"><MapPin aria-hidden="true"/><span>Bacoor City, Cavite<br/>Philippines · GMT+8</span></address>
+        <address className="studio-address">
+          <MapPin aria-hidden="true" />
+          <span>
+            Bacoor City, Cavite
+            <br />
+            Philippines · GMT+8
+          </span>
+        </address>
       </div>
       <footer>
         <span>
@@ -378,7 +407,7 @@ export function Navigation() {
   return (
     <header className="navigation">
       <a className="brand" href="#top" aria-label="ZXENO Studio home">
-        <img src="/assets/mark.svg" alt="" width="30" height="32" />
+        <Mark />
         <span>
           ZXENO
           <br />
@@ -394,6 +423,16 @@ export function Navigation() {
           Contact <ArrowUpRight aria-hidden="true" />
         </a>
       </nav>
+      <button
+        id="theme-toggle"
+        type="button"
+        className="theme-toggle"
+        aria-pressed="false"
+        aria-label="Switch to dark mode"
+      >
+        <Sun className="icon-light" aria-hidden="true" />
+        <Moon className="icon-dark" aria-hidden="true" />
+      </button>
     </header>
   );
 }

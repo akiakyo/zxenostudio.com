@@ -3,12 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#56C506" />
+    <meta name="theme-color" content="#F2F1EC" />
     <meta
       name="description"
       content="ZXENO Studio — independent creative production in the Philippines. Identity, film, motion, 3D and interactive experiences."
     />
     <title>ZXENO Studio — Motion with intention.</title>
+    <script>
+      /* Resolve the theme before first paint so there is no light flash. */
+      (function () {
+        var root = document.documentElement;
+        try {
+          var saved = localStorage.getItem("zxeno-theme");
+          var dark = saved
+            ? saved === "dark"
+            : matchMedia("(prefers-color-scheme: dark)").matches;
+          root.dataset.theme = dark ? "dark" : "light";
+        } catch (e) {
+          root.dataset.theme = "light";
+        }
+      })();
+    </script>
     <link rel="icon" href="/assets/mark.svg" type="image/svg+xml" />
   </head>
   <body>

@@ -12,7 +12,11 @@ export function playIntro(
 ) {
   const overlay = document.createElement("div");
   overlay.className = "intro";
-  overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><defs><mask id="portal" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"/><g id="logo-hole" opacity="0"><image href="/assets/Main%20Logo.png" x="-156" y="-160" width="312" height="320"/></g><g id="organic-holes" fill="black"><path/><path/><path/><path/></g></mask><clipPath id="mark-cut"><circle id="mark-circle"/></clipPath></defs><rect width="100%" height="100%" fill="#56C506" mask="url(#portal)"/><g id="solid-mark" clip-path="url(#mark-cut)"><image href="/assets/mark.svg" width="312" height="320" x="-156" y="-160"/></g></svg><span class="intro-label">ZXENO Studio / Enter the creative world</span><button class="intro-skip">Skip intro ↗</button>`;
+  const field =
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--brand")
+      .trim() || "#55A630";
+  overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><defs><mask id="portal" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"/><g id="logo-hole" opacity="0"><image href="/assets/Main%20Logo.png" x="-156" y="-160" width="312" height="320"/></g><g id="organic-holes" fill="black"><path/><path/><path/><path/></g></mask><clipPath id="mark-cut"><circle id="mark-circle"/></clipPath></defs><rect width="100%" height="100%" fill="${field}" mask="url(#portal)"/><g id="solid-mark" clip-path="url(#mark-cut)"><image href="/assets/mark.svg" width="312" height="320" x="-156" y="-160"/></g></svg><span class="intro-label">ZXENO Studio / Enter the creative world</span><button class="intro-skip">Skip intro ↗</button>`;
   document.body.append(overlay);
   const skip = overlay.querySelector<HTMLButtonElement>(".intro-skip")!;
   skip.textContent = "Skip intro ";

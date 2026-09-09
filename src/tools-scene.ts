@@ -83,7 +83,7 @@ export async function createToolsScene(
   renderer.setPixelRatio(
     Math.min(devicePixelRatio, innerWidth < 700 ? 1.1 : 1.35),
   );
-  renderer.setClearColor(0x56c506, 0);
+  renderer.setClearColor(0x55a630, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.3;
@@ -99,27 +99,45 @@ export async function createToolsScene(
   scene.environment = environment.texture;
   room.dispose();
   pmrem.dispose();
-  scene.add(new THREE.AmbientLight(0x8cf43a, 0.4));
+  scene.add(new THREE.AmbientLight(0x8fd45f, 0.4));
   const key = new THREE.DirectionalLight(0xffffff, 4);
   key.position.set(-3, 6, 5);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0x8cf43a, 3);
+  const rim = new THREE.DirectionalLight(0x8fd45f, 3);
   rim.position.set(5, 2, -2);
   scene.add(rim);
   const bodyMaterial = new THREE.MeshStandardMaterial({
-    color: 0x080c06,
     roughness: 0.3,
     metalness: 0.55,
   });
   const sideMaterial = new THREE.MeshStandardMaterial({
-    color: 0x2b6300,
     roughness: 0.34,
     metalness: 0.4,
   });
   const symbolMaterial = new THREE.MeshStandardMaterial({
-    color: 0x56c506,
     roughness: 0.25,
     metalness: 0.3,
+  });
+  // The tools take their colours from the stylesheet, so one palette drives both
+  // the page and the scene, and a theme switch repaints the materials in place.
+  const themed: [THREE.MeshStandardMaterial, string, number][] = [
+    [bodyMaterial, "--tool-body", 0x0f1e09],
+    [sideMaterial, "--tool-side", 0x2f6b1e],
+    [symbolMaterial, "--tool-symbol", 0x55a630],
+  ];
+  const readTheme = () => {
+    const style = getComputedStyle(document.documentElement);
+    for (const [material, token, fallback] of themed) {
+      const value = style.getPropertyValue(token).trim();
+      if (value) material.color.set(value);
+      else material.color.setHex(fallback);
+    }
+  };
+  readTheme();
+  const themeWatcher = new MutationObserver(readTheme);
+  themeWatcher.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
   });
   const group = new THREE.Group();
   scene.add(group);
@@ -551,6 +569,7 @@ export async function createToolsScene(
     cancelAnimationFrame(raf);
     observer.disconnect();
     resizeObserver.disconnect();
+    themeWatcher.disconnect();
     scene.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose();

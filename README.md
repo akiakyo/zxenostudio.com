@@ -11,6 +11,28 @@ npm run preview
 
 The dev server runs at http://127.0.0.1:5173. `dist/` is the deployable static site.
 
+## Brand palette
+
+Defined once as custom properties at the top of `src/style.css`. Off-white is the ground, green is the accent, and the WebGL scenes in `logo-scene.ts` / `tools-scene.ts` mirror the same values as hex literals.
+
+| Token          | Value     | Role                                                                                                          |
+| -------------- | --------- | ------------------------------------------------------------------------------------------------------------- |
+| `--brand`      | `#55A630` | Brand green: fills, bands, buttons. Ink on it is 6.9:1.                                                       |
+| `--brand-text` | `#4A9227` | Green display text on paper, 3.4:1 — clears AA for large text, which `--brand` alone does not.                |
+| `--brand-deep` | `#2F6B1E` | Small green text and hairlines on paper, 5.7:1.                                                               |
+| `--brand-lift` | `#8FD45F` | Green on the dark sections, 11.8:1 on ink.                                                                    |
+| `--brand-soft` | `#DFE8D4` | Pale green wash for hovers.                                                                                   |
+| `--paper`      | `#F2F1EC` | Warm off-white ground.                                                                                        |
+| `--ink`        | `#0F1E09` | Typography and the dark grounds. A near-black carrying the brand hue rather than pure black, 15.3:1 on paper. |
+
+Section grounds come from `data-tone` on each `<section>` (`paper`, `green`, `dark`); the fixed navigation reads the tone of whatever sits beneath it and recolours to match.
+
+### Light and dark
+
+Both themes are defined as two token sets: `:root` and `:root[data-theme="dark"]`. `--ink` and `--paper` are roles rather than fixed colours — `--ink` is always the reading contrast and `--paper` the recessive surface — so every ink/paper pair in the stylesheet inverts on its own. Surfaces that must stay dark in either theme (the film player, the reel portal, video mattes) use `--contrast` instead, and text sitting on bright brand green uses `--on-brand`.
+
+The toggle is the Lucide sun/moon button in the navigation. An explicit choice is stored in `localStorage` under `zxeno-theme` and wins from then on; with nothing stored the site follows `prefers-color-scheme` and keeps following it if the system flips. A small inline script in `index.html` resolves the theme before first paint so there is no light flash. `tools-scene.ts` reads `--tool-body`, `--tool-side` and `--tool-symbol` from the stylesheet and repaints its materials when `data-theme` changes, so the WebGL tools follow the page.
+
 ## Content and media
 
 - `src/content.tsx`: homepage projects, role-based disciplines, and the 12-member team directory. The 10 supplied member emails are linked; Kierre Paolo uses `zaevara.zxeno@gmail.com` as confirmed. John Kenneth Bergonio and V1nks have no supplied email, so none is invented.
