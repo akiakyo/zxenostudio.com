@@ -5,7 +5,7 @@ const {
   readFileSync,
   writeFileSync,
 } = require("node:fs");
-const ffmpeg = require.resolve("@ffmpeg-installer/win32-x64/ffmpeg.exe");
+const ffmpeg = require.resolve("@ffmpeg-installer/ffmpeg/ffmpeg.exe");
 mkdirSync("public/media", { recursive: true });
 mkdirSync("public/assets", { recursive: true });
 copyFileSync("assets/mark.svg", "public/assets/mark.svg");
