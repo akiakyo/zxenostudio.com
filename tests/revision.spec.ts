@@ -9,10 +9,13 @@ test("team directory, supplied roles, and homepage exclusions", async ({
   );
   await page.goto("/");
   await expect(page.locator(".project").nth(2)).toContainText("DITO MAXX");
-  await expect(page.locator('.project')).toHaveCount(3);
-  await expect(page.locator('.project').nth(1)).toContainText('RED LINE');
-  await expect(page.locator('.hero')).not.toContainText('DITO');
-  await expect(page.locator('#hero-video')).toHaveAttribute('data-src','/media/redline-preview.mp4');
+  await expect(page.locator(".project")).toHaveCount(3);
+  await expect(page.locator(".project").nth(1)).toContainText("RED LINE");
+  await expect(page.locator(".hero")).not.toContainText("DITO");
+  await expect(page.locator("#hero-video")).toHaveAttribute(
+    "data-src",
+    "/media/redline-preview.mp4",
+  );
   await expect(page.locator(".section-top")).not.toContainText([/\b0[1-9]\b/]);
   await expect(page.locator(".team-member")).toHaveCount(12);
   await expect(page.locator(".team-member a")).toHaveCount(10);
@@ -39,7 +42,9 @@ test("team directory, supplied roles, and homepage exclusions", async ({
     ).toBeTruthy();
     await page.screenshot({ path: `test-results/team-${width}.png` });
   }
-  expect(requested.some((url) => url.endsWith("/media/dito.webp"))).toBeTruthy();
+  expect(
+    requested.some((url) => url.endsWith("/media/dito.webp")),
+  ).toBeTruthy();
 });
 test("mobile 3D selection, drag, keyboard and reset", async ({ page }) => {
   await page.addInitScript(() =>
@@ -50,12 +55,16 @@ test("mobile 3D selection, drag, keyboard and reset", async ({ page }) => {
   await page.locator("#creative").scrollIntoViewIfNeeded();
   const scene = page.locator("#tools-scene");
   await expect(scene.locator("canvas")).toBeVisible();
-  await expect(page.locator('[data-tool]')).toHaveCount(7);
-  await expect(page.locator('.lucide-asterisk')).toHaveCount(0);
-  for(const [index,name] of [[4,'Photoshop'],[5,'DaVinci Resolve'],[6,'Illustrator']] as const){
+  await expect(page.locator("[data-tool]")).toHaveCount(7);
+  await expect(page.locator(".lucide-asterisk")).toHaveCount(0);
+  for (const [index, name] of [
+    [4, "Photoshop"],
+    [5, "DaVinci Resolve"],
+    [6, "Illustrator"],
+  ] as const) {
     await page.locator(`[data-tool="${index}"]`).click();
-    await expect(page.locator('.tool-status')).toHaveText(name);
-    await expect(scene).toHaveAttribute('data-selected',String(index));
+    await expect(page.locator(".tool-status")).toHaveText(name);
+    await expect(scene).toHaveAttribute("data-selected", String(index));
   }
   await page.locator('[data-tool="3"]').click();
   await expect(page.locator('[data-tool="3"]')).toHaveAttribute(
@@ -70,16 +79,60 @@ test("mobile 3D selection, drag, keyboard and reset", async ({ page }) => {
   await expect(scene).toHaveAttribute("data-selected", "-1");
   const box = await scene.boundingBox();
   if (!box) throw Error("Missing 3D viewport");
-  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5, {
-    steps: 8,
-  });
+  const pressAt = async (fx: number, fy: number) => {
+    await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy);
+    await page.mouse.down();
+    return scene.getAttribute("data-grabbing");
+  };
+  // Empty space still turns the whole cluster.
+  let empty: readonly [number, number] | null = null;
+  for (const point of [
+    [0.06, 0.95],
+    [0.95, 0.05],
+    [0.5, 0.02],
+    [0.06, 0.5],
+  ] as const) {
+    if ((await pressAt(...point)) === "") {
+      empty = point;
+      break;
+    }
+    await page.mouse.up();
+  }
+  if (!empty) throw Error("no empty point in the scene");
+  await page.mouse.move(
+    box.x + box.width * Math.min(empty[0] + 0.35, 1),
+    box.y + box.height * empty[1],
+    { steps: 8 },
+  );
   await page.mouse.up();
   await expect(scene).not.toHaveAttribute("data-rotation", "0.000");
+  // Grabbing a tool moves that tool on its own, anywhere in the section.
+  let grabbed: string | null = null;
+  for (const point of [
+    [0.5, 0.5],
+    [0.35, 0.35],
+    [0.65, 0.65],
+    [0.3, 0.72],
+    [0.7, 0.28],
+    [0.5, 0.22],
+    [0.5, 0.78],
+  ] as const) {
+    grabbed = await pressAt(...point);
+    if (grabbed) break;
+    await page.mouse.up();
+  }
+  expect(grabbed).toBeTruthy();
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.12, {
+    steps: 10,
+  });
+  await page.mouse.up();
+  await expect(scene).toHaveAttribute("data-moved", "1");
   await page.screenshot({ path: "test-results/interactive-mobile.png" });
   await page.locator("[data-reset-tools]").click();
   await expect(page.locator(".tool-status")).toHaveText("The creative toolkit");
+  // Reset puts the tools back and clears the turn.
+  await expect(scene).toHaveAttribute("data-moved", "0");
+  await expect(scene).toHaveAttribute("data-rotation", "0.000");
 });
 
 test("touchscreen intro and tool controls preserve mobile scrolling", async ({

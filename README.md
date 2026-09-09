@@ -33,6 +33,14 @@ Both themes are defined as two token sets: `:root` and `:root[data-theme="dark"]
 
 The toggle is the Lucide sun/moon button in the navigation. An explicit choice is stored in `localStorage` under `zxeno-theme` and wins from then on; with nothing stored the site follows `prefers-color-scheme` and keeps following it if the system flips. A small inline script in `index.html` resolves the theme before first paint so there is no light flash. `tools-scene.ts` reads `--tool-body`, `--tool-side` and `--tool-symbol` from the stylesheet and repaints its materials when `data-theme` changes, so the WebGL tools follow the page.
 
+## Motion
+
+`src/reveal.ts` handles entrance motion. Display headings are split into per-line spans at their `<br>` boundaries and rise out of a mask, staggered; everything else fades up as it reaches the reveal line. Absolutely positioned children (the contact arrow) are left out of the split so a mask cannot clip them into a corner.
+
+The trigger is a scroll sweep rather than an `IntersectionObserver`, deliberately. An observer got two cases wrong: content in the final screenful could never satisfy a negative bottom `rootMargin` and stayed invisible permanently, and fast or programmatic scrolling let elements pass through without a callback ever firing. The sweep reveals anything at or above the line, including anything already scrolled past, so no element can end up stranded at `opacity: 0`. Under `prefers-reduced-motion` nothing is split or transitioned — everything is simply marked visible.
+
+Accent words share one voice: `MOTION`, `POSSIBILITIES` and the contact heading's `MATTER.` are Georgia italic in `--brand-text`, set by the `.accent` class.
+
 ## Content and media
 
 - `src/content.tsx`: homepage projects, role-based disciplines, and the 12-member team directory. The 10 supplied member emails are linked; Kierre Paolo uses `zaevara.zxeno@gmail.com` as confirmed. John Kenneth Bergonio and V1nks have no supplied email, so none is invented.
@@ -41,7 +49,7 @@ The toggle is the Lucide sun/moon button in the navigation. An explicit choice i
 - `src/components/Sections.tsx`: homepage sections, navigation and custom film player.
 - `src/logo-scene.ts`: actual extruded ZXENO logo geometry, beveled edges, perspective and directional lighting.
 - `src/intro.ts`: 3D assembly, handoff to the original `Main Logo.png` luminance mask, organic SVG openings, and transition into the hero. Plays once per tab session, with a skip control during the intro.
-- `src/tools-scene.ts`: actual beveled WebGL objects and extruded tool symbols. Set `modelUrl` in `toolModels` to replace an object with a GLB export, centred at the origin, facing +Z, approximately 1.7 units across.
+- `src/tools-scene.ts`: actual beveled WebGL objects and extruded tool symbols. The scene spans the whole creative section; dragging a tool moves that tool freely within the section (clamped to the visible plane so it cannot leave), while dragging empty space still turns the cluster. **Reset** returns every tool to its resting position. Set `modelUrl` in `toolModels` to replace an object with a GLB export, centred at the origin, facing +Z, approximately 1.7 units across.
 - `public/media`: generated WebP posters, muted 12-second preview loops, and optimized full films. Originals remain in `assets/projects`.
 - `scripts/prepare-media.cjs`: optional Windows media regeneration (`node scripts/prepare-media.cjs`). FFmpeg is a development dependency only.
 

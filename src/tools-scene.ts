@@ -316,6 +316,18 @@ export async function createToolsScene(
   let selected = -1,
     dragX = 0,
     dragY = 0;
+  // Each tool keeps a displacement the visitor gave it by dragging, applied
+  // on top of its resting position so the idle float still works.
+  const offsets = toolModels.map(() => ({ x: 0, y: 0 }));
+  let dragIndex = -1;
+  let visHalfW = 4.05,
+    visHalfH = 4.05,
+    spreadX = 1;
+  const markMoved = () => {
+    host.dataset.moved = String(
+      offsets.filter((o) => o.x !== 0 || o.y !== 0).length,
+    );
+  };
   const render = (now: number) => {
     raf = 0;
     if (disposed || !visible || document.hidden) return;
@@ -325,9 +337,10 @@ export async function createToolsScene(
     modules.forEach((module, i) => {
       const spec = toolModels[i];
       const position = compact ? mobilePositions[i] : spec.position;
-      module.position.x = position[0];
+      module.position.x = position[0] * spreadX + offsets[i].x;
       module.position.y =
         position[1] +
+        offsets[i].y +
         (motion.matches ? 0 : Math.sin(phase * 0.55 + i * 1.7) * 0.085);
       module.rotation.y =
         spec.rotation[1] +
@@ -389,6 +402,10 @@ export async function createToolsScene(
         Math.tan(THREE.MathUtils.degToRad(16.5)) +
       1.3;
     camera.updateProjectionMatrix();
+    visHalfH = Math.tan(THREE.MathUtils.degToRad(16.5)) * camera.position.z;
+    visHalfW = visHalfH * camera.aspect;
+    // The scene now spans the whole section, so use the extra width.
+    spreadX = compact ? 1 : Math.max(1, Math.min(2.4, visHalfW / 4.2));
     request();
   };
   const resizeObserver = new ResizeObserver(resize);
@@ -432,11 +449,33 @@ export async function createToolsScene(
     () => {
       dragX = 0;
       dragY = 0;
+      host.dataset.rotation = "0.000";
+      offsets.forEach((o) => {
+        o.x = 0;
+        o.y = 0;
+      });
+      markMoved();
       select(-1);
       request();
     },
     { signal },
   );
+  const toolAt = (clientX: number, clientY: number) => {
+    const bounds = host.getBoundingClientRect();
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(
+      new THREE.Vector2(
+        ((clientX - bounds.left) / bounds.width) * 2 - 1,
+        (-(clientY - bounds.top) / bounds.height) * 2 + 1,
+      ),
+      camera,
+    );
+    const hit = ray.intersectObjects(modules, true)[0];
+    if (!hit) return -1;
+    let target: THREE.Object3D = hit.object;
+    while (target.parent && target.parent !== group) target = target.parent;
+    return modules.indexOf(target as THREE.Group);
+  };
   let pointerId: number | null = null,
     startX = 0,
     lastX = 0,
@@ -449,6 +488,8 @@ export async function createToolsScene(
       startX = lastX = e.clientX;
       lastY = e.clientY;
       moved = false;
+      dragIndex = toolAt(e.clientX, e.clientY);
+      host.dataset.grabbing = dragIndex >= 0 ? String(dragIndex) : "";
       host.setPointerCapture(e.pointerId);
     },
     { signal },
@@ -458,6 +499,35 @@ export async function createToolsScene(
     (e) => {
       if (pointerId !== e.pointerId) return;
       const dx = e.clientX - lastX;
+      if (dragIndex >= 0) {
+        // Screen pixels to world units on the plane this tool sits on, so it
+        // tracks the finger exactly, then clamped to stay inside the section.
+        const spec = toolModels[dragIndex];
+        const base = compact ? mobilePositions[dragIndex] : spec.position;
+        const depth = camera.position.z - base[2];
+        const perPixel =
+          (2 * Math.tan(THREE.MathUtils.degToRad(16.5)) * depth) /
+          host.clientHeight;
+        const offset = offsets[dragIndex];
+        const restX = base[0] * spreadX;
+        const margin = 1.05;
+        offset.x = THREE.MathUtils.clamp(
+          offset.x + dx * perPixel,
+          -visHalfW + margin - restX,
+          visHalfW - margin - restX,
+        );
+        offset.y = THREE.MathUtils.clamp(
+          offset.y - (e.clientY - lastY) * perPixel,
+          -visHalfH + margin - base[1],
+          visHalfH - margin - base[1],
+        );
+        lastX = e.clientX;
+        lastY = e.clientY;
+        moved ||= Math.abs(e.clientX - startX) > 5;
+        markMoved();
+        request();
+        return;
+      }
       dragX = THREE.MathUtils.clamp(dragX + dx * 0.006, -0.8, 0.8);
       if (e.pointerType === "mouse")
         dragY = THREE.MathUtils.clamp(
@@ -478,6 +548,8 @@ export async function createToolsScene(
     (e) => {
       if (pointerId !== e.pointerId) return;
       pointerId = null;
+      dragIndex = -1;
+      host.dataset.grabbing = "";
       if (!moved) {
         const bounds = host.getBoundingClientRect();
         const ray = new THREE.Raycaster();

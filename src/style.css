@@ -399,7 +399,7 @@ nav a:hover:after {
   z-index: 1;
   pointer-events: none;
 }
-.creative h2 span {
+.creative h2 .accent {
   margin-left: 10vw;
 }
 .creative-note {
@@ -434,7 +434,7 @@ nav a:hover:after {
 }
 #tools-scene {
   position: absolute;
-  inset: 0 0 0 30%;
+  inset: 0;
   z-index: 2;
   pointer-events: none;
   contain: layout paint;
@@ -825,7 +825,7 @@ dialog video {
     top: 45px;
   }
   #tools-scene {
-    inset: 0 -10px 0 10%;
+    inset: 0;
   }
   .creative-note {
     bottom: 0;
@@ -928,11 +928,11 @@ dialog video {
     font-size: 18vw;
     top: 45px;
   }
-  .creative h2 span {
+  .creative h2 .accent {
     margin-left: 0;
   }
   #tools-scene {
-    inset: 55px -10px 0 12%;
+    inset: 40px 0 0;
   }
   .creative-bottom .cross {
     font-size: 45px;
@@ -1736,5 +1736,69 @@ footer {
   }
   .navigation nav {
     order: 2;
+  }
+}
+
+/* Accent words: one serif voice across the display headings, always green.
+   The contact heading's <em> was already this treatment; MOTION and
+   POSSIBILITIES now join it, and the colour is shared. */
+.accent,
+.contact-title em,
+.reel-heading h2 > em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.08em;
+}
+.creative h2 .accent,
+.about h2 .accent,
+.contact-title em {
+  color: var(--brand-text);
+}
+
+/* --- Entrance motion -------------------------------------------------------
+   Headings rise line by line out of a mask; supporting content fades up. Both
+   settle to their natural state, so nothing here affects final layout. */
+.reveal-lines .line {
+  display: block;
+  overflow: hidden;
+}
+.reveal-lines .line-inner {
+  display: block;
+  transform: translateY(115%);
+  transition: transform 1s var(--ease);
+  transition-delay: calc(var(--i, 0) * 110ms);
+  will-change: transform;
+}
+.reveal-lines.is-in .line-inner {
+  transform: translateY(0);
+}
+.reveal-fade {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.75s ease,
+    transform 0.75s var(--ease);
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+.reveal-fade.is-in {
+  opacity: 1;
+  transform: none;
+}
+/* The heading mask needs a little breathing room or descenders get clipped. */
+.hero h1 .line,
+.creative h2 .line,
+.about h2 .line,
+.work-title h2 .line,
+.team-heading h2 .line {
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-lines .line-inner,
+  .reveal-fade {
+    transform: none;
+    opacity: 1;
+    transition: none;
   }
 }

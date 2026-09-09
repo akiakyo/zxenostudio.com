@@ -174,6 +174,18 @@ test("themes differ only in colour, never in layout or typography", async ({
     localStorage.setItem("zxeno-theme", "light");
   });
   await page.goto("/");
+  // Settle the entrance motion first: this compares resting styles, not
+  // whichever frame of a reveal each snapshot happened to catch. Transitions
+  // stay enabled so a dropped --ease still shows up as a difference.
+  const settle = async () => {
+    await page.evaluate(() =>
+      document
+        .querySelectorAll(".reveal-fade, .reveal-lines")
+        .forEach((el) => el.classList.add("is-in")),
+    );
+    await page.waitForTimeout(1500);
+  };
+  await settle();
   const PROPS = [
     "fontFamily",
     "fontSize",
@@ -215,6 +227,101 @@ test("themes differ only in colour, never in layout or typography", async ({
   const light = await snap();
   await page.locator("#theme-toggle").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await settle();
   const dark = await snap();
   expect(dark).toEqual(light);
+});
+test("accent words carry the serif voice in green", async ({ page }) => {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("zxeno-intro-3d", "seen"),
+  );
+  await page.goto("/");
+  const green = "rgb(74, 146, 39)";
+  for (const [selector, word] of [
+    [".creative h2 .accent", "MOTION"],
+    [".about h2 .accent", "POSSIBILITIES"],
+    [".contact-title em", "MATTER."],
+  ] as const) {
+    const el = page.locator(selector);
+    await expect(el).toHaveText(word);
+    await expect(el).toHaveCSS("color", green);
+    await expect(el).toHaveCSS("font-family", "Georgia, serif");
+  }
+});
+
+test("display headings reveal line by line and nothing stays hidden", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("zxeno-intro-3d", "seen"),
+  );
+  await page.goto("/");
+  // The two headings the animation was asked for keep their words after splitting.
+  await expect(page.locator(".hero h1 .line")).toHaveCount(2);
+  await expect(page.locator(".hero h1")).toHaveText(
+    /MOTION WITH\s*INTENTION\./,
+  );
+  await expect(page.locator(".creative h2 .line")).toHaveCount(3);
+  await expect(page.locator(".creative h2")).toHaveText(
+    /IDEAS IN\.\s*MOTION\s*OUT\./,
+  );
+  await expect(page.locator(".hero h1")).toHaveClass(/is-in/);
+
+  // Jumping straight to the end must not strand content at opacity 0 — neither
+  // the last screenful nor anything scrolled past on the way.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(1800);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(1200);
+  const stranded = await page.evaluate(
+    () =>
+      [...document.querySelectorAll(".reveal-fade, .reveal-lines")].filter(
+        (el) =>
+          !el.classList.contains("is-in") ||
+          Number(getComputedStyle(el).opacity) < 0.99,
+      ).length,
+  );
+  expect(stranded).toBe(0);
+});
+
+test("tools spread across the section and each one moves on its own", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("zxeno-intro-3d", "seen"),
+  );
+  await page.goto("/");
+  const scene = page.locator("#tools-scene");
+  await page.locator("#creative").scrollIntoViewIfNeeded();
+  await expect(scene.locator("canvas")).toBeVisible();
+  // The scene fills the stage rather than sitting in a right-hand column.
+  const stage = await page.locator(".creative-stage").boundingBox();
+  const box = await scene.boundingBox();
+  if (!stage || !box) throw Error("Missing stage");
+  expect(box.width).toBeGreaterThan(stage.width * 0.97);
+  await page.waitForTimeout(1200);
+
+  let grabbed: string | null = null;
+  for (const [fx, fy] of [
+    [0.5, 0.5],
+    [0.35, 0.35],
+    [0.65, 0.6],
+    [0.3, 0.72],
+    [0.7, 0.28],
+    [0.55, 0.8],
+  ] as const) {
+    await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy);
+    await page.mouse.down();
+    grabbed = await scene.getAttribute("data-grabbing");
+    if (grabbed) break;
+    await page.mouse.up();
+  }
+  expect(grabbed).toBeTruthy();
+  await page.mouse.move(box.x + box.width * 0.12, box.y + box.height * 0.15, {
+    steps: 12,
+  });
+  await page.mouse.up();
+  await expect(scene).toHaveAttribute("data-moved", "1");
+  await page.locator("[data-reset-tools]").click();
+  await expect(scene).toHaveAttribute("data-moved", "0");
 });

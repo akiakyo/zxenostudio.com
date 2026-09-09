@@ -1,5 +1,6 @@
 import { playIntro } from "./intro";
 import { projects } from "./content";
+import { setupReveals } from "./reveal";
 export function setupExperience() {
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   let reduced = motion.matches;
@@ -95,6 +96,7 @@ export function setupExperience() {
     },
     { signal },
   );
+  cleanups.push(setupReveals(reduced, signal));
   const videos = [
     ...document.querySelectorAll<HTMLVideoElement>("video[data-src]"),
   ];

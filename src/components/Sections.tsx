@@ -103,7 +103,7 @@ export function Creative() {
         <h2>
           IDEAS IN.
           <br />
-          <span>MOTION</span>
+          <span className="accent">MOTION</span>
           <br />
           OUT.
         </h2>
@@ -202,7 +202,8 @@ export function About() {
         <br />
         WIDE OPEN
         <br />
-        POSSIBILITIES<span>.</span>
+        <span className="accent">POSSIBILITIES</span>
+        <span>.</span>
       </h2>
       <div className="about-copy">
         <Mark size={130} height={134} />
