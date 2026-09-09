@@ -96,9 +96,31 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 88px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--acid) var(--ink);
 }
 body {
   margin: 0;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+::-webkit-scrollbar {
+  width: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--ink);
+}
+::-webkit-scrollbar-thumb {
+  min-height: 72px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--acid);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--acid-lift);
+}
+::-webkit-scrollbar-button {
+  display: none;
 }
 button,
 a,
@@ -368,6 +390,7 @@ nav a:hover:after {
   inset: 0 0 0 30%;
   z-index: 2;
   pointer-events: none;
+  contain: layout paint;
 }
 #tools-scene canvas {
   width: 100%;

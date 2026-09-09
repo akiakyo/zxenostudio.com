@@ -81,7 +81,7 @@ export async function createToolsScene(
     return () => {};
   }
   renderer.setPixelRatio(
-    Math.min(devicePixelRatio, innerWidth < 700 ? 1.25 : 1.6),
+    Math.min(devicePixelRatio, innerWidth < 700 ? 1.1 : 1.35),
   );
   renderer.setClearColor(0x56c506, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
