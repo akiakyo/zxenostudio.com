@@ -4,6 +4,25 @@ import { createRoot } from "react-dom/client";
 import { ArrowUpRight } from "lucide-react";
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
 const ease = (n: number) => n * n * n * (n * (n * 6 - 15) + 10);
+// Phase timeline, in the animation's own elapsed seconds (see frame() below),
+// not wall-clock time. WINDOW_START/RAMP line up with logo-scene.ts's own
+// fade-out (smoothstep 1.95-2.2), so the word-mark image fades in as a
+// plain top-layer element at the same moment the 3D mark fades out — a
+// morph from one logo to the other. It holds there, legible, for
+// MORPH_HOLD, then FLY_RAMP carries it — shrinking and translating — from
+// its centered hold position to the real header logo's own position, a
+// shared-element hand-off rather than a generic zoom-out: it lands right
+// where the actual (already-rendered, just-covered) nav logo sits, and the
+// green field fades out alongside it to reveal the real page underneath.
+// FINISH_AT leaves a short settle buffer after that fade completes so the
+// page is already fully visible and interactive the instant the intro
+// hands off — no flash of the old, still-inert page.
+const WINDOW_START = 1.98;
+const WINDOW_RAMP = 0.34;
+const MORPH_HOLD = 0.5;
+const FLY_START = WINDOW_START + WINDOW_RAMP + MORPH_HOLD;
+const FLY_RAMP = 0.9;
+const FINISH_AT = FLY_START + FLY_RAMP + 0.2;
 // An extruded WebGL mark assembles before handing off to the original logo mask.
 export function playIntro(
   reduced: boolean,
@@ -16,7 +35,23 @@ export function playIntro(
     getComputedStyle(document.documentElement)
       .getPropertyValue("--brand")
       .trim() || "#55A630";
-  overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><defs><mask id="portal" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"/><g id="logo-hole" opacity="0"><image href="/assets/Main%20Logo.png" x="-156" y="-160" width="312" height="320"/></g><g id="organic-holes" fill="black"><path/><path/><path/><path/></g></mask><clipPath id="mark-cut"><circle id="mark-circle"/></clipPath></defs><rect width="100%" height="100%" fill="${field}" mask="url(#portal)"/><g id="solid-mark" clip-path="url(#mark-cut)"><image href="/assets/mark.svg" width="312" height="320" x="-156" y="-160"/></g></svg><span class="intro-label">ZXENO Studio / Enter the creative world</span><button class="intro-skip">Skip intro ↗</button>`;
+  overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="mark-cut"><circle id="mark-circle"/></clipPath></defs><rect id="portal-field" width="100%" height="100%" fill="${field}"/><g id="solid-mark" clip-path="url(#mark-cut)"><image href="/assets/mark.svg" width="312" height="320" x="-156" y="-160"/></g></svg><span class="intro-label">ZXENO Studio / Enter the creative world</span><button class="intro-skip">Skip intro ↗</button>`;
+  // The word-mark is a plain, unmasked top-layer element (positioned, so it
+  // stacks above the static <svg> the same way .intro-logo-scene does — see
+  // the CSS comment there) rather than something revealed through a small
+  // mark-shaped cutout: that cutout is tiny (~the 3D mark's own footprint)
+  // next to this image, so routing it through there just cropped it to an
+  // unreadable sliver. Its own scale/opacity are driven directly in frame()
+  // below.
+  let wordLogo: HTMLImageElement | undefined;
+  if (!reduced) {
+    wordLogo = document.createElement("img");
+    wordLogo.className = "intro-word-logo";
+    wordLogo.alt = "";
+    wordLogo.setAttribute("aria-hidden", "true");
+    wordLogo.src = "/assets/Word%20Logo.png";
+    overlay.append(wordLogo);
+  }
   document.body.append(overlay);
   const skip = overlay.querySelector<HTMLButtonElement>(".intro-skip")!;
   skip.textContent = "Skip intro ";
@@ -35,17 +70,9 @@ export function playIntro(
   const nav = document.querySelector("header")!;
   main.inert = true;
   nav.inert = true;
-  const hole = overlay.querySelector("#logo-hole")!;
+  const fieldRect = overlay.querySelector<SVGRectElement>("#portal-field")!;
   const solid = overlay.querySelector("#solid-mark")!;
   const circle = overlay.querySelector("#mark-circle")!;
-  const paths = overlay.querySelectorAll("#organic-holes path");
-  // Keep the curved geometry cached. Only its transform changes during reveal.
-  paths.forEach((path) =>
-    path.setAttribute(
-      "d",
-      "M -1 0 C -1.1 -.8,-.25 -1.1,.3 -.85 S 1.15 -.2,1 .35 S .1 1.2,-.5 .75 S -1 .3,-1 0 Z",
-    ),
-  );
   let raf = 0,
     finished = false;
   let logo: ReturnType<typeof createIntroLogo> | undefined;
@@ -65,7 +92,24 @@ export function playIntro(
     cancelAnimationFrame(raf);
     window.clearTimeout(reducedTimer);
     queueMicrotask(() => iconRoot.unmount());
-    overlay.remove();
+    // Everything below makes the real page live immediately (it's already
+    // been rendering the whole time, just inert and covered). The overlay
+    // itself — field and word-mark, whatever is left of either — dissolves
+    // on top of it rather than being torn away instantly, which otherwise
+    // reads as a leftover frame flashing then vanishing.
+    if (reduced) {
+      overlay.remove();
+    } else {
+      // pointer-events:none first, so the now-live page underneath is
+      // actually clickable through the fade rather than blocked by it.
+      overlay.style.pointerEvents = "none";
+      overlay.style.transition = "opacity .35s ease";
+      overlay.style.opacity = "0";
+      overlay.addEventListener("transitionend", () => overlay.remove(), {
+        once: true,
+      });
+      window.setTimeout(() => overlay.remove(), 500); // safety net
+    }
     document.body.classList.remove("intro-active");
     main.inert = false;
     nav.inert = false;
@@ -74,27 +118,6 @@ export function playIntro(
     const teardown = logo;
     logo = undefined;
     requestAnimationFrame(() => setTimeout(() => teardown?.dispose(), 0));
-    const film = document.querySelector<HTMLElement>(".hero-film")!;
-    if (!reduced) {
-      const rect = film.getBoundingClientRect();
-      film.style.zIndex = "30";
-      const animation = film.animate(
-        [
-          {
-            transformOrigin: "0 0",
-            transform: `translate(${-rect.left}px,${-rect.top}px) scale(${innerWidth / rect.width},${innerHeight / rect.height})`,
-          },
-          { transformOrigin: "0 0", transform: "none" },
-        ],
-        { duration: 1100, easing: "cubic-bezier(.22,1,.36,1)" },
-      );
-      animation.onfinish = () => {
-        film.style.zIndex = "";
-      };
-      animation.oncancel = () => {
-        film.style.zIndex = "";
-      };
-    }
     try {
       sessionStorage.setItem("zxeno-intro-3d", "seen");
     } catch {}
@@ -109,11 +132,31 @@ export function playIntro(
   // Every attribute write below invalidates a full-screen SVG mask, so each one
   // is gated on the phase that actually needs it and skipped when unchanged.
   if (logo) solid.setAttribute("opacity", "0");
+  // Computed lazily, once, the first time the fly-in actually needs it —
+  // .brand is real, already-rendered page content (just covered, not
+  // hidden), so its rect is exactly where the word-mark should land.
+  let morphTarget: { dx: number; dy: number; scale: number } | null = null;
+  function computeMorphTarget() {
+    const brand = document.querySelector<HTMLElement>(".brand");
+    if (!brand) return null;
+    const b = brand.getBoundingClientRect();
+    if (!b.width) return null;
+    // .intro-word-logo's own rendered box (see its CSS: width min(560px,
+    // 70vw), square), and the fraction of that square the wordmark's actual
+    // content (mark + type) occupies — the source PNG is a padded square,
+    // not a tight crop.
+    const boxSize = Math.min(560, innerWidth * 0.7);
+    const contentWidth = boxSize * 0.67;
+    return {
+      dx: b.left + b.width / 2 - innerWidth / 2,
+      dy: b.top + b.height / 2 - innerHeight / 2,
+      scale: Math.max(0.04, Math.min(1, b.width / contentWidth)),
+    };
+  }
   let lastSolid = "",
     lastCircle = "",
     lastSolidCenter = "",
-    lastHole = "0",
-    lastHoleCenter = "",
+    lastField = "1",
     logoDone = false,
     revealed = false;
   let previous = start,
@@ -128,12 +171,11 @@ export function playIntro(
     const size = Math.min(w / 700, 1) * 0.68;
     if (logo && !logoDone) logoDone = logo.render(t, reduced);
     const reveal = ease(clamp(t / 0.85));
-    const windowPhase = ease(clamp((t - 1.98) / 0.34));
-    const expand = ease(clamp((t - 2.45) / 1.05));
-    const scale = size * (1 + expand * 4.5);
-    const center = `translate(${w / 2} ${h / 2}) scale(${scale.toFixed(4)})`;
+    const windowPhase = ease(clamp((t - WINDOW_START) / WINDOW_RAMP));
+    const flyProgress = ease(clamp((t - FLY_START) / FLY_RAMP));
     if (!logo) {
       // Fallback mark: it is the visible one, so it tracks every phase.
+      const center = `translate(${w / 2} ${h / 2}) scale(${size.toFixed(4)})`;
       if (center !== lastSolidCenter) {
         solid.setAttribute("transform", center);
         lastSolidCenter = center;
@@ -149,37 +191,38 @@ export function playIntro(
         lastSolid = opacity;
       }
     }
-    const holeOpacity = windowPhase.toFixed(3);
-    if (holeOpacity !== lastHole) {
-      hole.setAttribute("opacity", holeOpacity);
-      lastHole = holeOpacity;
+    if (windowPhase > 0 && !revealed) {
+      revealed = true;
+      onReveal();
     }
-    if (windowPhase > 0 && center !== lastHoleCenter) {
-      hole.setAttribute("transform", center);
-      lastHoleCenter = center;
-      if (!revealed) {
-        revealed = true;
-        onReveal();
-      }
+    if (wordLogo) {
+      if (flyProgress > 0 && !morphTarget) morphTarget = computeMorphTarget();
+      const target = morphTarget ?? { dx: 0, dy: 0, scale: 0.3 };
+      const dx = (target.dx * flyProgress).toFixed(1);
+      const dy = (target.dy * flyProgress).toFixed(1);
+      const s = (1 + (target.scale - 1) * flyProgress).toFixed(4);
+      // Visible through nearly the whole flight, then fades fast right at
+      // the end as it lands — that fade is what actually cuts it over to
+      // the real (identically positioned) header logo underneath.
+      const landed = clamp((flyProgress - 0.82) / 0.18);
+      wordLogo.style.opacity = (windowPhase * (1 - landed)).toFixed(3);
+      wordLogo.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${s})`;
     }
-    const organic = expand;
-    if (organic > 0)
-      paths.forEach((p, i) => {
-        const angle = (i * Math.PI) / 2 + 0.4;
-        const r = organic * Math.hypot(w, h) * 0.83;
-        const cx = w / 2 + Math.cos(angle) * w * 0.26 * organic;
-        const cy = h / 2 + Math.sin(angle) * h * 0.22 * organic;
-        p.setAttribute(
-          "transform",
-          `translate(${cx.toFixed(2)} ${cy.toFixed(2)}) scale(${r.toFixed(2)})`,
-        );
-      });
+    // The field fades out over the back of the flight so the real page
+    // resolves right as the word-mark reaches the header, instead of the
+    // green sitting there a beat longer than the thing landing on it.
+    const fieldOpacity = (1 - ease(clamp((flyProgress - 0.7) / 0.3))).toFixed(
+      3,
+    );
+    if (fieldOpacity !== lastField) {
+      fieldRect.setAttribute("opacity", fieldOpacity);
+      lastField = fieldOpacity;
+    }
     if (reduced) {
-      hole.setAttribute("opacity", "0");
       solid.setAttribute("opacity", logo ? "0" : "1");
       circle.setAttribute("r", "240");
       return;
-    } else if (t > 3.55) {
+    } else if (t > FINISH_AT) {
       finish();
       return;
     }

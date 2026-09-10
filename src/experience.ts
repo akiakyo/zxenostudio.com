@@ -144,12 +144,14 @@ export function setupExperience() {
   );
   document.addEventListener("visibilitychange", syncVideos, { signal });
   const hero = document.querySelector<HTMLVideoElement>("#hero-video")!;
-  hero.src = hero.dataset.src!;
-  hero.load();
+  if (hero) {
+    hero.src = hero.dataset.src!;
+    hero.load();
+  }
   const releaseVideo = () => {
     introBusy = false;
     syncVideos();
-    if (!reduced) hero.play().catch(() => {});
+    if (!reduced && hero) hero.play().catch(() => {});
   };
   let introCleanup: (() => void) | undefined;
   let seen = false;
@@ -163,8 +165,18 @@ export function setupExperience() {
     // any earlier just steals frames from the assembling mark.
     return playIntro(reduced, releaseVideo, releaseVideo);
   }
-  if (!seen && !initialHash) introCleanup = startIntro();
+  const isHome = location.pathname.replace(/\/+$/, "") === "";
+  const replayIntro = new URLSearchParams(location.search).get("intro") === "1";
+  const nav = document.querySelector("header")!;
+  if (isHome && (!seen || replayIntro) && !initialHash) introCleanup = startIntro();
   else releaseVideo();
+  // The plain, non-React cover in index.html has been hiding the real page
+  // (already rendered underneath, just covered) since before any JS ran, so
+  // there was never a gap where it could show through. By this line either
+  // the real intro overlay above has taken over, or there's no intro to
+  // show — either way it's safe to drop now, in the same synchronous tick,
+  // so the browser never paints a frame with neither cover present.
+  document.getElementById("preload-cover")?.remove();
   let returnFocus: HTMLElement | null = null;
   document.querySelectorAll<HTMLElement>("[data-film]").forEach((button) =>
     button.addEventListener(
@@ -269,7 +281,6 @@ export function setupExperience() {
     },
     { signal },
   );
-  const nav = document.querySelector("header")!;
   const sections = [
     ...document.querySelectorAll<HTMLElement>("main > section[data-tone]"),
   ];
@@ -280,22 +291,30 @@ export function setupExperience() {
   let scrollFrame = 0;
   function updateScroll() {
     scrollFrame = 0;
-    const rect = reel.getBoundingClientRect();
-    const p = Math.max(0, Math.min(1, -rect.top / (rect.height - innerHeight)));
-    const eased = p * p * (3 - 2 * p);
-    reel.style.setProperty("--reel-progress", String(p));
-    reelShape.setAttribute(
-      "transform",
-      `translate(.5 .5) rotate(${(-18 + eased * 30).toFixed(2)}) scale(${(eased * 3.5).toFixed(4)}) translate(-.5 -.5)`,
-    );
-    reelWindow.style.clipPath = reduced ? "none" : "url(#reel-portal)";
+    const rect = reel?.getBoundingClientRect();
+    if (rect && reel && reelShape && reelWindow) {
+      const p = Math.max(
+        0,
+        Math.min(1, -rect.top / (rect.height - innerHeight)),
+      );
+      const eased = p * p * (3 - 2 * p);
+      reel.style.setProperty("--reel-progress", String(p));
+      reelShape.setAttribute(
+        "transform",
+        `translate(.5 .5) rotate(${(-18 + eased * 30).toFixed(2)}) scale(${(eased * 3.5).toFixed(4)}) translate(-.5 -.5)`,
+      );
+      reelWindow.style.clipPath = reduced ? "none" : "url(#reel-portal)";
+    }
     const navEdge = nav.getBoundingClientRect().bottom + 32;
     const section = sections.find((section) => {
       const bounds = section.getBoundingClientRect();
       return bounds.top <= navEdge && bounds.bottom > navEdge;
     });
     const tone =
-      section === reel && rect.top < 0 && (p > 0.5 || reduced)
+      section === reel &&
+      reel &&
+      reel.getBoundingClientRect().top < 0 &&
+      (Number(reel.style.getPropertyValue("--reel-progress")) > 0.5 || reduced)
         ? "dark"
         : (section?.dataset.tone ?? "paper");
     nav.classList.toggle("dark", tone === "dark");
@@ -310,51 +329,12 @@ export function setupExperience() {
   );
   addEventListener("resize", updateScroll, { signal });
   updateScroll();
-  const host = document.querySelector<HTMLElement>("#tools-scene")!;
-  let sceneDispose: (() => void) | undefined;
-  let disposed = false;
-  let sceneStarted = false;
-  const lazy = new IntersectionObserver(
-    (entries) => {
-      if (
-        sceneStarted ||
-        disposed ||
-        document.body.classList.contains("intro-active")
-      )
-        return;
-      if (entries.some((e) => e.isIntersecting)) {
-        sceneStarted = true;
-        lazy.disconnect();
-        import("./tools-scene")
-          .then(async (module) => {
-            if (disposed) return;
-            sceneDispose = await module.createToolsScene(host, motion);
-          })
-          .catch(() => {
-            host.dataset.fallback = "true";
-          });
-      }
-    },
-    { rootMargin: "250px" },
-  );
-  lazy.observe(host);
-  window.addEventListener(
-    "zxeno:intro-complete",
-    () => {
-      lazy.unobserve(host);
-      lazy.observe(host);
-    },
-    { signal },
-  );
   document.querySelector("#year")!.textContent = String(
     new Date().getFullYear(),
   );
   return () => {
-    disposed = true;
     controller.abort();
     observer.disconnect();
-    lazy.disconnect();
-    sceneDispose?.();
     introCleanup?.();
     cancelAnimationFrame(scrollFrame);
     cleanups.forEach((c) => c());

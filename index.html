@@ -8,7 +8,7 @@
       name="description"
       content="ZXENO Studio — independent creative production in the Philippines. Identity, film, motion, 3D and interactive experiences."
     />
-    <title>ZXENO Studio — Motion with intention.</title>
+    <title>ZXENO Studio</title>
     <script>
       /* Resolve the theme before first paint so there is no light flash. */
       (function () {
@@ -23,10 +23,67 @@
           root.dataset.theme = "light";
         }
       })();
+      /* Decide, before first paint, whether this load will hand off to the
+         home page's first-visit 3D intro (which opens on a green field) or
+         land straight on a normal page (whose own background is the paper
+         surface tone, not green) — see the #preload-cover rule below, which
+         picks its color from this same flag so the cover always matches
+         whatever is about to appear under it instead of flashing a
+         different color first. */
+      (function () {
+        try {
+          var isHome = location.pathname.replace(/\/+$/, "") === "";
+          var seen = sessionStorage.getItem("zxeno-intro-3d") === "seen";
+          var replay = new URLSearchParams(location.search).get("intro") === "1";
+          if (isHome && (!seen || replay) && !location.hash) {
+            document.documentElement.dataset.preloadIntro = "true";
+          }
+        } catch (e) {}
+      })();
     </script>
+    <style>
+      /* Covers the page from the very first paint — before the stylesheet,
+         React or any JS has even loaded — so there is never a frame where a
+         raw, unstyled white page shows through. Its color always matches
+         what's coming next (the paper surface tone for a normal page, or
+         the intro's own green field when the intro is about to take over)
+         so the cover blends into the real content instead of flashing a
+         mismatched color first. experience.ts removes it the instant it has
+         decided whether the intro overlay is taking over or there's
+         nothing to show, in the same synchronous tick, so nothing is ever
+         visible in between. */
+      /* Hex literals, not var(--surface) / var(--brand): style.css (where
+         those are defined) is still loading at this point, and an unset
+         custom property resolves to nothing rather than falling back, which
+         would leave the cover transparent and bring the white flash right
+         back. These are copies of --surface / --brand's two theme values. */
+      #preload-cover {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: #f2f1ec;
+      }
+      :root[data-theme="dark"] #preload-cover {
+        background: #101710;
+      }
+      :root[data-preload-intro] #preload-cover {
+        background: #55a630;
+      }
+      :root[data-theme="dark"][data-preload-intro] #preload-cover {
+        background: #62b83a;
+      }
+    </style>
+    <noscript>
+      <style>
+        #preload-cover {
+          display: none;
+        }
+      </style>
+    </noscript>
     <link rel="icon" href="/assets/mark.svg" type="image/svg+xml" />
   </head>
   <body>
+    <div id="preload-cover"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

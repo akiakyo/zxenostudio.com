@@ -4,23 +4,25 @@
 
 const HEADINGS = [
   ".hero h1",
-  ".creative h2",
   ".about h2",
   ".work-title h2",
   ".team-heading h2",
+  ".timeline h2",
 ];
 
 const FADES = [
   ".section-top",
   ".hero-bottom > *",
   ".hero-film",
-  ".creative-bottom > *",
+  ".hero-products",
   ".project",
   ".about-copy > *",
   ".about-note",
   ".team-heading p",
   ".team-member",
   ".service",
+  ".timeline-month",
+  ".quick-link",
   ".contact-title",
   ".contact-bottom > *",
   "footer > *",

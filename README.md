@@ -69,3 +69,13 @@ npm test
 An existing Chromium installation can be used by setting `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its executable path. Tests cover the session intro and skip control, six responsive widths, lazy video loading, WebGL canvas, player controls, navigation and reduced motion. Screenshots are written to `test-results/`.
 
 Three.js renderer and extrusion implementation follow the [official renderer documentation](https://threejs.org/docs/pages/WebGLRenderer.html) and [ExtrudeGeometry documentation](https://threejs.org/docs/pages/ExtrudeGeometry.html). The bundled Helvetiker font retains its license in `src/fonts/LICENSE`.
+
+## September 2026 multipage update
+
+The site now has separate `/`, `/services`, `/work`, `/about`, `/pricing`, and `/book` routes. `npm run build` emits an `index.html` in each route directory for static hosts. Configure the host to serve directory index files and use `404.html` for unknown paths. Navigation uses standard links, including browser back/forward behavior.
+
+Typography uses locally hosted Bricolage Grotesque; its license is in `public/fonts/OFL.txt`. Pricing is in PHP with ₱10,000,000 explicitly labeled as a temporary placeholder, not an agreed quote. Booking opens a prefilled email to the supplied studio address; it does not claim to reserve a calendar slot.
+
+The supplied Google document was retrieved and its linked folders reviewed. Assets include six PNG website icons, four JPG service illustrations (web, motion, graphic design, merchandise), and 3D sample subfolders for VFX, iPhone, JBL headset and Sauvage Dior. The four service illustrations are included in `public/media/services`. The existing 3D toolkit and film media are preserved. Additional icon and 3D sample files are not imported. The homepage identifies brands featured in the existing portfolio rather than inventing endorsements.
+
+Validation: `npm run build` and `npx playwright test tests/multipage.spec.ts`. Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to your Chrome path if Playwright browsers are not installed. Older tests asserting every section exists on the homepage describe the previous single-page layout.

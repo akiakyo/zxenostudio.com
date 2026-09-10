@@ -22,12 +22,9 @@
   --contrast-fg: #f2f1ec;
   --rule: rgba(15, 30, 9, 0.4);
   --rule-soft: rgba(15, 30, 9, 0.16);
-  --tool-body: #0f1e09; /* read by tools-scene.ts for the WebGL materials */
-  --tool-side: #2f6b1e;
-  --tool-symbol: #55a630;
   --ease: cubic-bezier(0.76, 0, 0.24, 1);
   --gutter: clamp(20px, 3.2vw, 64px);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Bricolage Grotesque", Arial, sans-serif;
   color: var(--ink);
   background: var(--brand);
   font-synthesis: none;
@@ -50,9 +47,6 @@
   --contrast-fg: #e8ece3;
   --rule: rgba(232, 236, 227, 0.28);
   --rule-soft: rgba(232, 236, 227, 0.12);
-  --tool-body: #1e2b16; /* lifted off the dark ground so the cards read */
-  --tool-side: #3f8a28;
-  --tool-symbol: #8fd45f;
 }
 
 .intro-logo-scene {
@@ -91,7 +85,7 @@
 }
 .team-member {
   display: grid;
-  grid-template-columns: 64px 1fr auto;
+  grid-template-columns: 64px 1fr;
   gap: 24px;
   align-items: center;
   border-bottom: 1px solid var(--rule);
@@ -123,15 +117,23 @@
   line-height: 1.5;
   margin-top: 8px;
 }
-.team-member a {
+/* Tags, not cards: a wrapped row of small rounded pills rather than a grid
+   of boxes, so it reads as detail on the existing list row instead of a
+   second layout competing with it. */
+.member-tags {
   display: flex;
-  gap: 25px;
-  align-items: center;
-  font-size: 12px;
-  padding: 14px 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
 }
-.team-member a > span:last-child {
-  font-size: 25px;
+.member-tags li {
+  font-size: 11px;
+  line-height: 1;
+  padding: 7px 12px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 999px;
 }
 * {
   box-sizing: border-box;
@@ -217,7 +219,7 @@ video {
 }
 .eyebrow {
   text-transform: uppercase;
-  font-family: "Courier New", monospace;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 11px;
   line-height: 1.5;
   letter-spacing: 0.025em;
@@ -305,28 +307,47 @@ nav a:hover:after {
   justify-content: space-between;
   margin-bottom: 35px;
 }
+/* Copy on the left, showcase on the right — stacks back to one column once
+   the copy column would otherwise get too narrow to read comfortably. */
+.hero-layout {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: clamp(24px, 4vw, 64px);
+}
+.hero-copy {
+  min-width: 0;
+}
+@media (max-width: 960px) {
+  .hero-layout {
+    grid-template-columns: 1fr;
+  }
+}
 .hero h1 {
-  font-size: clamp(58px, 10.85vw, 220px);
-  white-space: nowrap;
+  /* Sized for the two-line sentence copy, not a single short word, so it
+     wraps instead of overflowing if a line ever runs long. Narrower than
+     before now that it shares the hero with the showcase instead of
+     spanning the full width. */
+  font-size: clamp(32px, 4.6vw, 68px);
   position: relative;
   z-index: 2;
 }
 .hero-second {
   display: block;
-  margin-left: 14.5%;
 }
 .period {
   font-size: 0.85em;
 }
 .hero-bottom {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 30px 0 36px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+  margin: 24px 0 0;
 }
 .hero-bottom p {
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 16px;
+  line-height: 1.5;
 }
 .round-link {
   border: 1px solid var(--rule);
@@ -375,53 +396,11 @@ nav a:hover:after {
   padding-top: 15px;
   gap: 20px;
 }
-.creative,
 .work,
 .about,
 .services,
 .contact {
   padding: 100px var(--gutter) 0;
-}
-.creative-stage {
-  height: 690px;
-  position: relative;
-  margin-top: 30px;
-  /* The scene deliberately bleeds past the right edge at narrow widths; clip
-     it here so the bleed never widens the document. 'clip' rather than
-     'hidden' because it must not become a scroll container. */
-  overflow-x: clip;
-}
-.creative h2 {
-  position: absolute;
-  top: 60px;
-  left: 0;
-  font-size: clamp(80px, 12vw, 215px);
-  z-index: 1;
-  pointer-events: none;
-}
-.creative h2 .accent {
-  margin-left: 10vw;
-}
-.creative-note {
-  position: absolute;
-  right: 0;
-  bottom: 25px;
-}
-.creative-bottom {
-  border-top: 1px solid var(--rule);
-  padding-top: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 25px;
-}
-.cross {
-  font-size: 64px;
-  line-height: 1;
-}
-.creative-bottom p {
-  font-size: 16px;
-  line-height: 1.5;
 }
 .text-link {
   font-size: 14px;
@@ -431,26 +410,6 @@ nav a:hover:after {
 }
 .text-link:hover {
   opacity: 0.6;
-}
-#tools-scene {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  contain: layout paint;
-}
-#tools-scene canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-.scene-fallback {
-  position: absolute;
-  right: 5%;
-  top: 25%;
-  font-size: 35px;
-  font-weight: 900;
-  max-width: 6ch;
 }
 .work {
   padding-top: 140px;
@@ -655,7 +614,7 @@ nav a:hover:after {
   margin: 70px 0;
 }
 .contact-title em {
-  font-family: Georgia, serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-weight: 400;
   letter-spacing: -0.08em;
 }
@@ -696,12 +655,13 @@ footer {
 footer button {
   text-transform: uppercase;
 }
+/* Shared dialog defaults. Deliberately NOT sizing or positioning here: an
+   element selector like `dialog` reaches every <dialog> on the page,
+   including the email and gallery modals below — forcing width/height/
+   margin here previously fought their own centered sizing (margin:0 kills
+   the UA's native margin:auto centering) and pinned them fullscreen and
+   flush to the top instead. Only #film-dialog actually wants fullscreen. */
 dialog {
-  width: 100vw;
-  max-width: none;
-  height: 100dvh;
-  max-height: none;
-  margin: 0;
   border: 0;
   padding: 20px var(--gutter);
   background: var(--contrast);
@@ -714,6 +674,13 @@ dialog::backdrop {
 dialog[open] {
   display: flex;
   flex-direction: column;
+}
+#film-dialog {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
 }
 dialog video {
   flex: 1;
@@ -755,6 +722,29 @@ dialog video {
   height: 100%;
   display: block;
 }
+/* Positioned (like .intro-logo-scene above) so it stacks above the static
+   <svg>: an unpositioned element like that svg always paints behind any
+   positioned sibling, regardless of z-index or DOM order. This element
+   comes later in DOM order than .intro-logo-scene, so between the two of
+   them it draws on top of the 3D mark during their brief morph crossfade —
+   the side that should be on top there. */
+.intro-word-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(560px, 70vw);
+  height: auto;
+  /* Scale/opacity/position are driven every frame from intro.ts, in lock-
+     step with the fade-in then the fly-to-header-logo — no transition
+     here, since those values already interpolate smoothly frame by frame. */
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro-word-logo {
+    display: none;
+  }
+}
 .intro-label {
   position: absolute;
   bottom: 30px;
@@ -773,25 +763,11 @@ dialog video {
     monospace;
   text-transform: uppercase;
 }
-.intro-active .hero-film {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  height: 100dvh;
-}
-.intro-active .hero-film .film-caption {
-  visibility: hidden;
-}
 .intro-active {
   overflow: hidden;
 }
 .intro-active main {
   pointer-events: none;
-}
-@media (min-width: 1600px) {
-  .creative-stage {
-    height: 850px;
-  }
 }
 @media (max-width: 800px) {
   .hero {
@@ -801,43 +777,17 @@ dialog video {
     margin-bottom: 28px;
     font-size: 9px;
   }
-  .hero h1 {
-    font-size: 10.8vw;
-  }
   .hero-bottom {
     margin: 25px 0;
   }
   .hero-bottom > .eyebrow {
     font-size: 9px;
   }
-  .creative,
   .work,
   .about,
   .services,
   .contact {
     padding-top: 75px;
-  }
-  .creative-stage {
-    height: 550px;
-  }
-  .creative h2 {
-    font-size: 15vw;
-    top: 45px;
-  }
-  #tools-scene {
-    inset: 0;
-  }
-  .creative-note {
-    bottom: 0;
-  }
-  .creative-bottom {
-    flex-wrap: wrap;
-  }
-  .creative-bottom p {
-    font-size: 14px;
-  }
-  .creative-bottom .text-link {
-    margin-left: auto;
   }
   .section-top {
     font-size: 9px;
@@ -861,7 +811,7 @@ dialog video {
     gap: 35px;
     grid-template-columns: 1fr 2fr;
   }
-  .about-copy img {
+  .about-copy .brand-mark {
     width: 80px;
     height: auto;
   }
@@ -921,29 +871,6 @@ dialog video {
   .hero-film {
     height: 340px;
   }
-  .creative-stage {
-    height: 440px;
-  }
-  .creative h2 {
-    font-size: 18vw;
-    top: 45px;
-  }
-  .creative h2 .accent {
-    margin-left: 0;
-  }
-  #tools-scene {
-    inset: 40px 0 0;
-  }
-  .creative-bottom .cross {
-    font-size: 45px;
-  }
-  .creative-bottom p {
-    max-width: 230px;
-    font-size: 12px;
-  }
-  .creative-bottom .text-link {
-    font-size: 12px;
-  }
   .project {
     margin-bottom: 45px;
   }
@@ -971,8 +898,9 @@ dialog video {
     gap: 25px;
     padding-bottom: 20px;
   }
-  .about-copy img {
+  .about-copy .brand-mark {
     width: 50px;
+    height: auto;
   }
   .about-copy p:first-child {
     font-size: 21px;
@@ -1033,50 +961,6 @@ dialog video {
     clip-path: none !important;
   }
 }
-/* Interaction and team layouts override the earlier presentation-only scene. */
-#tools-scene {
-  pointer-events: auto;
-  touch-action: pan-y;
-  cursor: grab;
-}
-#tools-scene:active {
-  cursor: grabbing;
-}
-#tools-scene:focus-visible {
-  outline: 1px dashed var(--ink);
-  outline-offset: 5px;
-}
-.tool-controls {
-  padding: 15px 0 28px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.tool-controls > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.tool-controls button {
-  border: 1px solid var(--rule);
-  padding: 11px 13px;
-  font-size: 11px;
-  min-height: 44px;
-  transition:
-    background 0.25s,
-    color 0.25s;
-}
-.tool-controls button:hover,
-.tool-controls button[aria-pressed="true"] {
-  background: var(--contrast);
-  color: var(--brand-lift);
-}
-.tool-status {
-  min-width: 120px;
-  text-align: right;
-}
 .service {
   grid-template-columns: 1fr 35%;
   gap: 40px;
@@ -1101,20 +985,8 @@ dialog video {
     grid-template-columns: 42px 1fr;
     gap: 12px;
   }
-  .team-member a {
-    grid-column: 2;
-    justify-content: space-between;
-    padding: 0;
-    min-height: 38px;
-  }
-  .team-member a > span:first-child {
-    overflow-wrap: anywhere;
-  }
   .member-identity h3 {
     font-size: 28px;
-  }
-  .tool-status {
-    text-align: left;
   }
   .service {
     grid-template-columns: 1fr;
@@ -1160,25 +1032,6 @@ dialog video {
   .member-identity p {
     font-size: 11px;
   }
-  .team-member a {
-    font-size: 11px;
-  }
-  .tool-controls {
-    gap: 12px;
-  }
-  .tool-controls > div {
-    gap: 6px;
-  }
-  .tool-controls button {
-    font-size: 10px;
-    padding: 9px 10px;
-  }
-  .creative-stage {
-    height: 465px;
-  }
-  .creative-note {
-    bottom: 8px;
-  }
   .intro-label {
     max-width: 190px;
     font-size: 9px;
@@ -1206,7 +1059,7 @@ dialog video {
   display: block;
 }
 .reel-heading h2 > em {
-  font-family: Georgia, serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-weight: 400;
   letter-spacing: -0.075em;
   margin-left: 10%;
@@ -1382,10 +1235,6 @@ main > section[data-tone="dark"] {
   color: var(--surface-fg);
   box-shadow: inset 0 -1px var(--rule-soft);
 }
-.navigation:not(.paper):not(.dark) {
-  background: var(--band);
-  color: var(--band-fg);
-}
 .navigation.dark {
   background: var(--contrast);
   color: var(--contrast-fg);
@@ -1406,9 +1255,6 @@ main > section[data-tone="dark"] {
 }
 .hero {
   padding-bottom: 75px;
-}
-.creative {
-  padding-bottom: 85px;
 }
 .work {
   padding-bottom: 1px;
@@ -1433,7 +1279,6 @@ main > section[data-tone="dark"] {
   background: var(--brand-soft);
   box-shadow: inset 3px 0 var(--brand);
 }
-.team-member a,
 .member-monogram {
   color: var(--brand-deep);
 }
@@ -1462,9 +1307,6 @@ main > section[data-tone="dark"] {
   .hero {
     padding-bottom: 45px;
   }
-  .creative {
-    padding-bottom: 55px;
-  }
   .about,
   .services {
     padding-top: 65px;
@@ -1485,12 +1327,10 @@ main > section[data-tone="dark"] {
 nav a,
 .film-caption button,
 .text-link,
-.team-member a,
 footer a,
 footer button,
 .player-top button,
 .player-bottom button,
-.tool-controls button,
 .intro-skip {
   display: inline-flex;
   align-items: center;
@@ -1500,10 +1340,6 @@ footer button,
 .project-play .lucide {
   width: 1em;
   height: 1em;
-}
-.cross.lucide {
-  width: 64px;
-  height: 64px;
   stroke-width: 1;
 }
 .contact-title > span .lucide {
@@ -1587,18 +1423,6 @@ footer button,
 }
 .scroll-link:hover .scroll-icon {
   border-color: var(--ink);
-}
-.team-member a {
-  justify-content: flex-start;
-  gap: 10px;
-}
-.team-member a > .lucide-mail {
-  width: 16px;
-  height: 16px;
-}
-.team-member a > span:last-child {
-  font-size: inherit;
-  overflow-wrap: anywhere;
 }
 .contact-bottom {
   align-items: center;
@@ -1724,20 +1548,128 @@ footer {
     height: 14px;
   }
 }
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* Hamburger: three bars that morph into an X. Hidden until the nav below
+   collapses into a drawer; prefers-reduced-motion already strips every
+   transition on the page (see the global rule further down), so this and
+   the drawer's own motion both simply snap for those users. */
+.menu-toggle {
+  display: none;
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  color: inherit;
+}
+.menu-toggle-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 15px;
+  height: 1.5px;
+  margin: -0.75px 0 0 -7.5px;
+  background: currentColor;
+  border-radius: 2px;
+  transition:
+    transform 0.3s var(--ease),
+    opacity 0.2s ease;
+}
+.menu-toggle-bar:nth-child(1) {
+  transform: translateY(-5px);
+}
+.menu-toggle-bar:nth-child(3) {
+  transform: translateY(5px);
+}
+.menu-toggle[aria-expanded="true"] .menu-toggle-bar:nth-child(1) {
+  transform: rotate(45deg);
+}
+.menu-toggle[aria-expanded="true"] .menu-toggle-bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.menu-toggle[aria-expanded="true"] .menu-toggle-bar:nth-child(3) {
+  transform: rotate(-45deg);
+}
+@media (max-width: 760px) {
+  .menu-toggle {
+    display: inline-flex;
+  }
+  /* The nav becomes a fixed full-screen drawer instead of wrapping: fixed
+     (not absolute) so it's positioned against the viewport regardless of
+     .navigation's own intrinsic height, with a top offset approximating
+     that header height so the bar itself stays visible above the drawer. */
+  .navigation nav {
+    position: fixed;
+    inset: 78px 0 0;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    margin: 0;
+    padding: 40px var(--gutter) 60px;
+    background: var(--surface);
+    color: var(--surface-fg);
+    font-size: 22px;
+    overflow-y: auto;
+    /* Slide only, no opacity here: fading the whole panel makes its own
+       solid background translucent mid-transition, ghosting the page
+       underneath through it. The panel itself should stay fully opaque
+       throughout — only the links (below) fade and stagger in. */
+    visibility: hidden;
+    transform: translateY(-100%);
+    transition:
+      transform 0.35s var(--ease),
+      visibility 0s linear 0.35s;
+  }
+  .navigation nav[data-open] {
+    visibility: visible;
+    transform: translateY(0);
+    transition: transform 0.35s var(--ease);
+  }
+  .navigation nav a {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 0.35s ease,
+      transform 0.35s ease;
+  }
+  .navigation nav[data-open] a {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .navigation nav a:nth-child(1) {
+    transition-delay: 0.08s;
+  }
+  .navigation nav a:nth-child(2) {
+    transition-delay: 0.14s;
+  }
+  .navigation nav a:nth-child(3) {
+    transition-delay: 0.2s;
+  }
+  .navigation nav a:nth-child(4) {
+    transition-delay: 0.26s;
+  }
+  .navigation nav a:nth-child(5) {
+    transition-delay: 0.32s;
+  }
+}
 
 @media (max-width: 900px) {
   nav {
     gap: clamp(14px, 2.1vw, 30px);
   }
 }
-@media (max-width: 480px) {
-  .theme-toggle {
-    order: 1;
-  }
-  .navigation nav {
-    order: 2;
-  }
-}
+/* Superseded by the fixed-panel mobile drawer below, which takes nav out of
+   the header's flex flow entirely rather than wrapping it onto a second
+   row — order no longer does anything once that kicks in. */
 
 /* Accent words: one serif voice across the display headings, always green.
    The contact heading's <em> was already this treatment; MOTION and
@@ -1745,12 +1677,11 @@ footer {
 .accent,
 .contact-title em,
 .reel-heading h2 > em {
-  font-family: Georgia, serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-weight: 400;
   font-style: italic;
   letter-spacing: -0.08em;
 }
-.creative h2 .accent,
 .about h2 .accent,
 .contact-title em {
   color: var(--brand-text);
@@ -1787,7 +1718,6 @@ footer {
 }
 /* The heading mask needs a little breathing room or descenders get clipped. */
 .hero h1 .line,
-.creative h2 .line,
 .about h2 .line,
 .work-title h2 .line,
 .team-heading h2 .line {
@@ -1800,5 +1730,1002 @@ footer {
     transform: none;
     opacity: 1;
     transition: none;
+  }
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque.ttf") format("truetype");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+nav a[aria-current="page"]:after {
+  transform: scaleX(1);
+}
+.booking-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 18px 24px;
+  background: var(--brand);
+  color: var(--on-brand);
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 16px;
+}
+.booking-button:hover {
+  background: var(--brand-lift);
+}
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.hero-actions-divider {
+  color: var(--rule);
+  font-size: 18px;
+  line-height: 1;
+}
+.page-heading {
+  padding: 180px var(--gutter) 75px;
+  background: var(--surface);
+}
+.page-heading h1 {
+  font-size: clamp(56px, 9vw, 140px);
+  max-width: 1100px;
+  letter-spacing: -0.065em;
+  line-height: 1;
+  margin: 32px 0;
+}
+.page-heading p {
+  max-width: 590px;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.discipline-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  padding: 0 var(--gutter) 80px;
+  background: var(--surface);
+}
+.discipline-grid article {
+  padding: 32px;
+  border: 1px solid var(--rule-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.discipline-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 45px;
+  color: var(--brand-deep);
+}
+.discipline-top svg {
+  width: 36px;
+  height: 36px;
+  stroke-width: 1.4;
+}
+.discipline-grid h2 {
+  font-size: 30px;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+.discipline-grid p {
+  line-height: 1.6;
+  margin: 20px 0 30px;
+}
+.discipline-grid a {
+  margin-top: auto;
+}
+.brand-strip,
+.home-overview,
+.audiences,
+.pricing-panel,
+.booking-panel {
+  padding: 65px var(--gutter);
+  background: var(--surface);
+}
+.brand-strip {
+  border-bottom: 1px solid var(--rule-soft);
+}
+/* A real marquee, not a wrapping row: two identical copies sit side by side
+   in one flex line and slide left forever. Translating by exactly one
+   copy's width (50% of the pair, corrected by half the inter-copy gap so
+   the loop point lands exactly on the seam) makes the loop invisible. */
+.brand-strip-viewport {
+  overflow: hidden;
+  margin: 35px 0;
+}
+.brand-strip-track {
+  --brand-gap: clamp(40px, 6vw, 90px);
+  display: flex;
+  gap: var(--brand-gap);
+  width: max-content;
+  animation: brand-marquee 18s linear infinite;
+}
+.brand-strip-set {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--brand-gap);
+}
+.brand-strip-track span {
+  font-size: clamp(28px, 4vw, 60px);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+}
+@keyframes brand-marquee {
+  to {
+    transform: translateX(calc(-50% - (var(--brand-gap) / 2)));
+  }
+}
+.brand-strip-viewport:hover .brand-strip-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-strip-track {
+    animation: none;
+  }
+}
+.home-overview h2 {
+  font-size: clamp(48px, 7vw, 110px);
+  letter-spacing: -0.06em;
+  line-height: 1;
+  margin: 30px 0;
+}
+.home-overview p,
+.booking-panel p,
+.pricing-panel p {
+  max-width: 640px;
+  line-height: 1.6;
+  font-size: 18px;
+  margin: 24px 0;
+}
+.audiences > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin-top: 35px;
+}
+.audiences h2 {
+  font-size: 30px;
+  margin-bottom: 15px;
+}
+.audiences p {
+  line-height: 1.6;
+}
+.timeline {
+  padding: 100px var(--gutter);
+  background: var(--surface);
+  border-top: 1px solid var(--rule-soft);
+}
+.timeline h2 {
+  font-size: clamp(44px, 7vw, 96px);
+  letter-spacing: -0.05em;
+  margin: 45px 0 60px;
+}
+/* A rail, not a grid of cards: one connecting line down the left with a dot
+   per month, list rows (matching .team-member's convention) rather than
+   bordered/shadowed boxes for each project. */
+.timeline-rail {
+  position: relative;
+  max-width: 760px;
+  padding-left: 32px;
+}
+.timeline-rail:before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--rule);
+}
+.timeline-month {
+  position: relative;
+  margin-bottom: 56px;
+}
+.timeline-month:last-child {
+  margin-bottom: 0;
+}
+.timeline-marker {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.timeline-dot {
+  position: absolute;
+  left: -32px;
+  top: 6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 0 4px var(--surface);
+  transition: transform 0.4s var(--ease);
+}
+.timeline-month-label {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.timeline-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.timeline-items > li {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  transition:
+    background 0.25s,
+    padding 0.25s;
+}
+.timeline-items > li:hover {
+  background: var(--brand-soft);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.timeline-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.timeline-item-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.timeline-item-title .lucide {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.6;
+  color: var(--brand-deep);
+}
+.timeline-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-deep);
+}
+.timeline-done .lucide {
+  width: 14px;
+  height: 14px;
+}
+.timeline-details {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.timeline-details li {
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 11px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 999px;
+  color: var(--brand-deep);
+}
+/* Reveal handles the fade/slide-up (see reveal.ts); the dot gets a little
+   extra pop of its own as each month settles into place. */
+.timeline-month.reveal-fade .timeline-dot {
+  transform: scale(0.3);
+}
+.timeline-month.reveal-fade.is-in .timeline-dot {
+  transform: scale(1);
+}
+@media (max-width: 640px) {
+  .timeline {
+    padding: 70px var(--gutter);
+  }
+  .timeline h2 {
+    margin: 30px 0 40px;
+  }
+  .timeline-rail {
+    padding-left: 24px;
+  }
+  .timeline-dot {
+    left: -24px;
+  }
+  .timeline-item-head {
+    font-size: 15px;
+  }
+}
+.quick-links {
+  padding: 90px var(--gutter) 110px;
+  background: var(--surface);
+}
+.quick-links-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 40px;
+}
+.quick-link {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 28px 24px 32px;
+  border: 1px solid var(--rule);
+  border-radius: 22px;
+  isolation: isolate;
+  transition:
+    color 0.35s,
+    border-color 0.35s;
+}
+/* A green sweep rises from the bottom on hover/focus instead of a flat
+   background flip — the "cool" version of the same fill-on-hover trick
+   already used elsewhere (.service, .team-member). */
+.quick-link:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--brand);
+  transform: translateY(101%);
+  transition: transform 0.45s var(--ease);
+}
+.quick-link:hover,
+.quick-link:focus-visible {
+  color: var(--on-brand);
+  border-color: transparent;
+}
+.quick-link:hover:before,
+.quick-link:focus-visible:before {
+  transform: translateY(0);
+}
+.quick-link-arrow.lucide {
+  position: absolute;
+  top: 26px;
+  right: 22px;
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.6;
+  transform: rotate(-45deg);
+  transition: transform 0.4s var(--ease);
+}
+.quick-link:hover .quick-link-arrow.lucide,
+.quick-link:focus-visible .quick-link-arrow.lucide {
+  transform: rotate(0deg) translate(2px, -2px);
+}
+.quick-link-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 4px 0 6px;
+  border-radius: 16px;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  transition:
+    background 0.35s,
+    color 0.35s,
+    transform 0.4s var(--ease);
+}
+.quick-link-icon .lucide {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.6;
+}
+.quick-link:hover .quick-link-icon,
+.quick-link:focus-visible .quick-link-icon {
+  background: rgba(15, 30, 9, 0.16);
+  color: var(--on-brand);
+  transform: rotate(-8deg) scale(1.08);
+}
+.quick-link-label {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.quick-link-copy {
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+@media (max-width: 900px) {
+  .quick-links-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .quick-links {
+    padding: 65px var(--gutter) 75px;
+  }
+  .quick-links-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+.pricing-panel {
+  margin: 0 var(--gutter);
+  border: 1px solid var(--rule);
+  padding: 45px;
+}
+.price {
+  font-size: clamp(42px, 8vw, 120px);
+  font-weight: 700;
+  letter-spacing: -0.065em;
+  margin: 30px 0 12px;
+  overflow-wrap: anywhere;
+}
+.price-note {
+  display: inline-block;
+  padding: 8px 12px;
+  background: var(--brand-soft);
+  margin-bottom: 35px;
+}
+.pricing-panel h2,
+.booking-panel h2 {
+  font-size: clamp(30px, 4vw, 56px);
+  letter-spacing: -0.04em;
+}
+.booking-note {
+  font-size: 14px !important;
+}
+@media (max-width: 800px) {
+  .discipline-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .audiences > div {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .page-heading {
+    padding-top: 165px;
+  }
+  .discipline-grid {
+    grid-template-columns: 1fr;
+  }
+  .discipline-grid article {
+    padding: 25px;
+  }
+  .pricing-panel {
+    padding: 24px;
+  }
+  .navigation nav {
+    font-size: 11px;
+  }
+  .hero-bottom {
+    flex-wrap: wrap;
+  }
+}
+/* Keep display headings in the supplied family, including accent words. */
+.hero h1,
+.contact-title,
+.contact-title em {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  letter-spacing: -0.045em;
+}
+
+/* Bold Bricolage with sentence-case display headings. */
+.hero h1,
+.hero h1 .line-inner,
+.hero h1 .hero-second {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 700;
+  font-optical-sizing: none;
+  font-variation-settings:
+    "opsz" 14,
+    "wdth" 100;
+  letter-spacing: -0.035em;
+}
+
+.project-approach {
+  padding: 64px var(--gutter);
+  background: var(--surface);
+}
+.project-approach > h2 {
+  margin-bottom: 24px;
+}
+.approach-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+.approach-card {
+  position: relative;
+  overflow: hidden;
+  padding: 30px 26px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background: #fff;
+  color: var(--surface-fg);
+  box-shadow: 0 12px 36px rgba(15, 30, 9, 0.045);
+  transition:
+    transform 0.35s var(--ease),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+:root[data-theme="dark"] .approach-card {
+  background: #1b2418;
+}
+.approach-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--brand-soft);
+  box-shadow: 0 24px 50px rgba(15, 30, 9, 0.14);
+}
+/* The "shine": a soft diagonal highlight that sweeps across on hover,
+   clipped to the card by its own overflow:hidden. Brand-green tinted
+   rather than plain white, which would be invisible against the card's
+   own near-white background in light mode. */
+.approach-card:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(143, 212, 95, 0.55),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.75s ease;
+  pointer-events: none;
+}
+.approach-card:hover:before {
+  left: 130%;
+}
+.approach-icon {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 28px;
+  border-radius: 22px;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  transition: transform 0.4s var(--ease);
+}
+.approach-card:hover .approach-icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+.approach-icon svg {
+  width: 46px;
+  height: 46px;
+  stroke-width: 1.7;
+}
+.approach-card h3 {
+  font-size: clamp(21px, 1.8vw, 28px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin-bottom: 10px;
+}
+.approach-card p {
+  font-size: 16px;
+  line-height: 1.55;
+  opacity: 0.8;
+  max-width: 46ch;
+}
+@media (max-width: 900px) {
+  .approach-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .approach-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .approach-card {
+    padding: 26px;
+  }
+}
+.portfolio-gallery {
+  padding: 0 var(--gutter) 80px;
+  background: var(--surface);
+}
+.portfolio-gallery > h2 {
+  font-size: clamp(32px, 4vw, 60px);
+  letter-spacing: -0.04em;
+  margin-bottom: 36px;
+}
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px 28px;
+}
+.gallery-cover {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--contrast);
+}
+.gallery-cover img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.4s;
+}
+.gallery-cover:hover img {
+  transform: scale(1.025);
+}
+.gallery-cover span {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  padding: 10px 14px;
+  background: #101710e8;
+  color: #fff;
+  border-radius: 30px;
+  font-size: 13px;
+}
+.portfolio-grid h3 {
+  font-size: 28px;
+  margin: 18px 0 6px;
+}
+.portfolio-grid p {
+  font-size: 14px;
+}
+.gallery-dialog {
+  width: min(1100px, 94vw);
+  max-height: 94dvh;
+  border: 1px solid #ffffff30;
+  border-radius: 14px;
+  padding: 16px;
+  background: #101710;
+  color: #f2f1ec;
+}
+.gallery-dialog::backdrop {
+  background: #000c;
+}
+.gallery-full {
+  display: block;
+  width: 100%;
+  height: 70dvh;
+  object-fit: contain;
+}
+.gallery-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.gallery-toolbar h2 {
+  font-size: 22px;
+}
+.gallery-toolbar button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+}
+body:has(.gallery-dialog[open]) {
+  overflow: hidden;
+}
+.artwork-tilt {
+  perspective: 850px;
+  touch-action: pan-y;
+  cursor: grab;
+  border-radius: 12px;
+}
+.artwork-tilt:active {
+  cursor: grabbing;
+}
+.artwork-tilt img {
+  object-fit: contain;
+  aspect-ratio: 1;
+  transition: transform 0.16s ease-out;
+  filter: drop-shadow(0 20px 15px #0002);
+}
+.approach-icon {
+  background: transparent;
+  border-radius: 0;
+}
+.approach-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.site-footer {
+  display: block;
+  margin: 0;
+  padding: 72px var(--gutter) 24px;
+  background: #101710;
+  color: #f2f1ec;
+  border-top: 1px solid #8fd45f44;
+  font-family: "Bricolage Grotesque", sans-serif;
+  text-transform: none;
+}
+.footer-columns {
+  display: grid;
+  grid-template-columns: 1.1fr 0.65fr 1.7fr 1fr;
+  gap: 32px;
+}
+.footer-columns > div + div {
+  border-left: 1px solid #ffffff24;
+  padding-left: 30px;
+}
+.footer-columns h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 26px;
+  letter-spacing: -0.03em;
+}
+.footer-columns a {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.footer-columns a:hover {
+  color: #8fd45f;
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 32px !important;
+  font-weight: 800;
+  line-height: 0.95 !important;
+  margin-bottom: 32px;
+}
+.footer-brand img {
+  filter: brightness(0) saturate(100%) invert(79%) sepia(26%) saturate(842%)
+    hue-rotate(47deg);
+}
+.footer-studio address {
+  font-style: normal;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.footer-studio p,
+.footer-contact p {
+  font-size: 14px;
+  color: #b8c3b2;
+  line-height: 1.6;
+  margin-top: 18px;
+}
+.footer-pages a {
+  display: block;
+  margin-bottom: 18px;
+}
+.footer-capabilities > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+.footer-contact > a {
+  overflow-wrap: anywhere;
+}
+.footer-contact .booking-button {
+  margin-top: 30px;
+  border-radius: 40px;
+  color: #101710;
+  background: #8fd45f;
+}
+.footer-base {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 28px;
+  margin-top: 60px;
+  border-top: 1px solid #ffffff24;
+  font-size: 12px;
+  color: #b8c3b2;
+}
+@media (max-width: 1100px) {
+  .footer-columns {
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  .footer-columns > div + div {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+@media (max-width: 560px) {
+  .portfolio-grid {
+    grid-template-columns: 1fr;
+  }
+  .footer-columns {
+    grid-template-columns: 1fr;
+  }
+  .footer-base {
+    flex-direction: column;
+  }
+  .site-footer {
+    padding-top: 48px;
+  }
+  .gallery-full {
+    height: 65dvh;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .artwork-tilt img,
+  .gallery-cover img {
+    transition: none;
+    transform: none !important;
+  }
+}
+.hero-products {
+  position: relative;
+  min-width: 0;
+  background: radial-gradient(
+    ellipse at 50% 55%,
+    var(--brand-soft),
+    var(--surface) 70%
+  );
+}
+@media (max-width: 960px) {
+  .hero-products {
+    /* Full-bleed again once the layout stacks back to one column. */
+    margin: 30px calc(-1 * var(--gutter)) 0;
+  }
+}
+.hero-showcase-stage {
+  display: grid;
+  place-items: center;
+  /* min-height, not height: at narrow widths the 1:1 artwork plus caption can
+     run taller than the fluid minimum, and a fixed height let the caption
+     overflow into the tab row below it instead of pushing it down. */
+  min-height: clamp(360px, 42vw, 620px);
+  padding: 20px var(--gutter) 28px;
+}
+.hero-showcase-stage figure {
+  margin: 0;
+  width: min(100%, 460px);
+  text-align: center;
+}
+.hero-showcase-stage .artwork-tilt {
+  width: 100%;
+}
+.hero-showcase-stage img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.hero-showcase-stage figcaption {
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.hero-products-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  padding: 0 var(--gutter);
+}
+.hero-product-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.hero-product-tabs button {
+  padding: 12px 18px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 30px;
+  font-size: 14px;
+}
+.hero-product-tabs button[aria-pressed="true"] {
+  background: var(--brand);
+  color: var(--on-brand);
+  border-color: transparent;
+}
+.hero-drag-hint {
+  display: block;
+  text-align: center;
+  padding: 18px 0 30px;
+  font-size: 12px;
+  opacity: 0.65;
+}
+.email-dialog {
+  width: min(540px, calc(100vw - 32px));
+  max-height: 90dvh;
+  overflow: auto;
+  padding: 30px;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--surface-fg);
+}
+.email-dialog::backdrop {
+  background: #060b08bf;
+  backdrop-filter: blur(6px);
+}
+.email-top,
+.email-recipient {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.email-top button,
+.email-recipient button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+}
+.email-dialog h2 {
+  font-size: 36px;
+  letter-spacing: -0.04em;
+  margin: 20px 0;
+}
+.email-recipient {
+  padding: 10px 14px;
+  background: var(--brand-soft);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.email-copy-status {
+  display: block;
+  min-height: 24px;
+  font-size: 12px;
+  padding-top: 5px;
+}
+.email-dialog label {
+  display: block;
+  font-size: 14px;
+  margin: 14px 0;
+}
+.email-dialog input,
+.email-dialog textarea {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+}
+.email-dialog textarea {
+  resize: vertical;
+}
+.email-note {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 14px;
+  opacity: 0.75;
+}
+body:has(.email-dialog[open]) {
+  overflow: hidden;
+}
+@media (max-width: 560px) {
+  .hero-products-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .hero-product-tabs button {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .email-dialog {
+    padding: 22px;
   }
 }

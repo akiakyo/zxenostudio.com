@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { HeroShowcase } from "./HeroShowcase";
 import { Project, projects, services, team } from "../content";
 import {
   ArrowDown,
@@ -5,7 +7,6 @@ import {
   ArrowUpRight,
   Mail,
   MapPin,
-  RotateCcw,
   X,
   Maximize,
   Plus,
@@ -42,120 +43,32 @@ export function Hero() {
         <span>Independent creative studio</span>
         <span>Philippines / Working everywhere</span>
       </div>
-      <h1>
-        MOTION WITH
-        <br />
-        <span className="hero-second">
-          INTENTION<span className="period">.</span>
-        </span>
-      </h1>
-      <div className="hero-bottom">
-        <p>
-          Ideas made tangible.
-          <br />
-          Stories made unforgettable.
-        </p>
-        <a
-          className="scroll-link"
-          href="#work"
-          aria-label="Explore selected work"
-        >
-          <span className="scroll-icon">
-            <ArrowDown aria-hidden="true" />
-          </span>
-          <span>Explore work</span>
-        </a>
-        <span className="eyebrow">
-          Film. Design. Code.
-          <br />
-          One creative perspective.
-        </span>
-      </div>
-      <div className="hero-film">
-        <video
-          id="hero-video"
-          muted
-          playsInline
-          loop
-          preload="auto"
-          poster="/media/redline.webp"
-          data-src="/media/redline-preview.mp4"
-        ></video>
-        <div className="film-caption">
-          <span>In focus / RED LINE</span>
-          <button data-film="1">
-            Watch film <ArrowUpRight aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
+      <div className="hero-layout">
+        <div className="hero-copy">
+          <h1>
+            We build brands that move
+            <br />
+            <span className="hero-second">
+              and products people trust<span className="period">.</span>
+            </span>
+          </h1>
+          <div className="hero-bottom">
+            <p>Design. Motion. Code.</p>
 
-export function Creative() {
-  return (
-    <section className="creative" id="creative" data-tone="paper">
-      <div className="section-top eyebrow">
-        <span>The creative engine</span>
-        <span>From the first idea to the final frame</span>
-      </div>
-      <div className="creative-stage">
-        <h2>
-          IDEAS IN.
-          <br />
-          <span className="accent">MOTION</span>
-          <br />
-          OUT.
-        </h2>
-        <div
-          id="tools-scene"
-          role="group"
-          tabIndex={0}
-          aria-label="Interactive 3D creative tools. Drag sideways or use arrow keys to rotate. Press Home to reset."
-        >
-          <div className="scene-fallback">
-            Ae / Pr / Code / Blender / Ps / Resolve / Ai
+            <div className="hero-actions">
+              <a className="booking-button" href="/book">
+                Book a call <ArrowUpRight aria-hidden="true" />
+              </a>
+              <span className="hero-actions-divider" aria-hidden="true">
+                |
+              </span>
+              <a className="text-link" href="/work">
+                See our work <ArrowUpRight aria-hidden="true" />
+              </a>
+            </div>
           </div>
         </div>
-        <span className="creative-note eyebrow">
-          Many disciplines.
-          <br />
-          One point of view.
-        </span>
-      </div>
-      <div className="tool-controls" aria-label="Explore creative tools">
-        <span className="eyebrow">Drag to explore / Tap a tool</span>
-        <div>
-          {[
-            "After Effects",
-            "Premiere Pro",
-            "Visual Studio Code",
-            "Blender",
-            "Photoshop",
-            "DaVinci Resolve",
-            "Illustrator",
-          ].map((name, index) => (
-            <button key={name} data-tool={index} aria-pressed="false">
-              {name}
-            </button>
-          ))}
-          <button data-reset-tools>
-            Reset <RotateCcw aria-hidden="true" />
-          </button>
-        </div>
-        <span className="tool-status eyebrow" aria-live="polite">
-          The creative toolkit
-        </span>
-      </div>
-      <div className="creative-bottom">
-        <p>
-          We connect design, moving image and technology.
-          <br />
-          Whatever the medium, the intention stays clear.
-        </p>
-        <a className="text-link" href="#services">
-          Explore our capabilities <ArrowUpRight aria-hidden="true" />
-        </a>
+        <HeroShowcase />
       </div>
     </section>
   );
@@ -166,7 +79,6 @@ export function SelectedWork() {
     <section id="work" className="work" data-tone="dark">
       <div className="section-top eyebrow">
         <span>Selected work</span>
-        <span>A few things we've put into the world</span>
       </div>
       <div className="work-title">
         <h2>
@@ -208,11 +120,9 @@ export function About() {
       <div className="about-copy">
         <Mark size={130} height={134} />
         <div>
-          <p>Good work starts with a point of view.</p>
           <p>
-            We're ZXENO. A creative studio in Bacoor, Philippines, bringing
-            together creative direction, film, motion, 3D and development. We
-            move between disciplines to give each idea the form it deserves.
+            We're ZXENO. An independent studio for design, film, motion, 3D and
+            development.
           </p>
           <span className="eyebrow">
             Based in Cavite. Built for everywhere.
@@ -228,7 +138,6 @@ export function Team() {
     <section id="team" className="team" data-tone="paper">
       <div className="section-top eyebrow">
         <span>The people behind ZXENO</span>
-        <span>Different strengths. Shared intention.</span>
       </div>
       <div className="team-heading">
         <h2>
@@ -255,16 +164,12 @@ export function Team() {
             <div className="member-identity">
               <h3>{member.name}</h3>
               <p>{member.role}</p>
+              <ul className="member-tags">
+                {member.techStack.map((tool) => (
+                  <li key={tool}>{tool}</li>
+                ))}
+              </ul>
             </div>
-            {member.email && (
-              <a
-                href={`mailto:${member.email}`}
-                aria-label={`Email ${member.name}`}
-              >
-                <Mail aria-hidden="true" />
-                <span>{member.email}</span>
-              </a>
-            )}
           </article>
         ))}
       </div>
@@ -371,12 +276,11 @@ export function Contact() {
     <section id="contact" className="contact" data-tone="paper">
       <div className="section-top eyebrow">
         <span>Your next project</span>
-        <span>Good things start with a conversation</span>
       </div>
       <a className="contact-title" href="mailto:zxenostudio@gmail.com">
-        LET'S MAKE
+        Let's make
         <br />
-        IT <em>MATTER.</em>
+        it <em>matter.</em>
         <span>
           <ArrowUpRight aria-hidden="true" />
         </span>
@@ -394,20 +298,29 @@ export function Contact() {
           </span>
         </address>
       </div>
-      <footer>
-        <span>
-          © ZXENO Studio <span id="year">2026</span>
-        </span>
-        <span className="footer-note">Design. Film. Code.</span>
-      </footer>
     </section>
   );
 }
 
 export function Navigation() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Mobile-only drawer: closes on Escape, and locks background scroll while
+  // open so the page underneath the full-screen panel can't scroll away.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
   return (
     <header className="navigation">
-      <a className="brand" href="#top" aria-label="ZXENO Studio home">
+      <a className="brand" href="/" aria-label="ZXENO Studio home">
         <Mark />
         <span>
           ZXENO
@@ -415,25 +328,46 @@ export function Navigation() {
           STUDIO<sup>®</sup>
         </span>
       </a>
-      <nav aria-label="Main navigation">
-        <a href="#work">Work</a>
-        <a href="#about">About</a>
-        <a href="#team">Team</a>
-        <a href="#services">Services</a>
-        <a href="#contact">
-          Contact <ArrowUpRight aria-hidden="true" />
+      <nav
+        id="primary-nav"
+        aria-label="Main navigation"
+        data-open={menuOpen || undefined}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("a")) setMenuOpen(false);
+        }}
+      >
+        <a href="/work">Work</a>
+        <a href="/about">About</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/services">Services</a>
+        <a href="/book">
+          Book a call <ArrowUpRight aria-hidden="true" />
         </a>
       </nav>
-      <button
-        id="theme-toggle"
-        type="button"
-        className="theme-toggle"
-        aria-pressed="false"
-        aria-label="Switch to dark mode"
-      >
-        <Sun className="icon-light" aria-hidden="true" />
-        <Moon className="icon-dark" aria-hidden="true" />
-      </button>
+      <div className="nav-controls">
+        <button
+          id="theme-toggle"
+          type="button"
+          className="theme-toggle"
+          aria-pressed="false"
+          aria-label="Switch to dark mode"
+        >
+          <Sun className="icon-light" aria-hidden="true" />
+          <Moon className="icon-dark" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="menu-toggle"
+          aria-expanded={menuOpen}
+          aria-controls="primary-nav"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span className="menu-toggle-bar" aria-hidden="true" />
+          <span className="menu-toggle-bar" aria-hidden="true" />
+          <span className="menu-toggle-bar" aria-hidden="true" />
+        </button>
+      </div>
     </header>
   );
 }
