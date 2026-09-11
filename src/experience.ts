@@ -168,15 +168,47 @@ export function setupExperience() {
   const isHome = location.pathname.replace(/\/+$/, "") === "";
   const replayIntro = new URLSearchParams(location.search).get("intro") === "1";
   const nav = document.querySelector("header")!;
-  if (isHome && (!seen || replayIntro) && !initialHash) introCleanup = startIntro();
-  else releaseVideo();
-  // The plain, non-React cover in index.html has been hiding the real page
-  // (already rendered underneath, just covered) since before any JS ran, so
-  // there was never a gap where it could show through. By this line either
-  // the real intro overlay above has taken over, or there's no intro to
-  // show — either way it's safe to drop now, in the same synchronous tick,
-  // so the browser never paints a frame with neither cover present.
-  document.getElementById("preload-cover")?.remove();
+  const main = document.querySelector("main")!;
+  const cover = document.getElementById("preload-cover");
+  if (isHome && (!seen || replayIntro) && !initialHash) {
+    introCleanup = startIntro();
+    // The real intro overlay (its own green field + logo) is already on top
+    // of this plain cover by now, so it comes off in the same synchronous
+    // tick as before — no visible hand-off gap.
+    cover?.remove();
+  } else {
+    releaseVideo();
+    // No 3D intro on this load, so the plain cover is doing loading-veil duty
+    // instead: the real page is already rendered underneath it (just blurred
+    // and dimmed), so holding it a beat past first paint lets fonts and
+    // layout settle and the page's entrance animation finish out of sight,
+    // rather than visibly fading/sliding in front of the visitor on every
+    // plain reload. main/nav go inert for the same span, so nothing under a
+    // still-blurred page can be interacted with or tabbed into early.
+    if (cover) {
+      main.inert = true;
+      nav.inert = true;
+      const release = () => {
+        main.inert = false;
+        nav.inert = false;
+      };
+      const settle = () => {
+        cover.classList.add("is-leaving");
+        cover.addEventListener("transitionend", () => cover.remove(), {
+          once: true,
+        });
+        window.setTimeout(() => cover.remove(), 500); // safety net
+        release();
+      };
+      const minDisplay = new Promise<void>((resolve) =>
+        window.setTimeout(resolve, reduced ? 120 : 450),
+      );
+      Promise.race([
+        Promise.all([document.fonts?.ready ?? Promise.resolve(), minDisplay]),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 2500)), // don't hold the veil forever if fonts never settle
+      ]).then(settle);
+    }
+  }
   let returnFocus: HTMLElement | null = null;
   document.querySelectorAll<HTMLElement>("[data-film]").forEach((button) =>
     button.addEventListener(
@@ -319,6 +351,7 @@ export function setupExperience() {
         : (section?.dataset.tone ?? "paper");
     nav.classList.toggle("dark", tone === "dark");
     nav.classList.toggle("paper", tone === "paper");
+    nav.classList.toggle("compact", scrollY > 24);
   }
   addEventListener(
     "scroll",

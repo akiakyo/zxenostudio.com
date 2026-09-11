@@ -48,10 +48,17 @@
          what's coming next (the paper surface tone for a normal page, or
          the intro's own green field when the intro is about to take over)
          so the cover blends into the real content instead of flashing a
-         mismatched color first. experience.ts removes it the instant it has
-         decided whether the intro overlay is taking over or there's
-         nothing to show, in the same synchronous tick, so nothing is ever
-         visible in between. */
+         mismatched color first.
+         On a normal page (no 3D intro) it doubles as a loading veil: a
+         blurred, dimmed scrim over the real page — already rendered
+         underneath, just softened — with the mark resting on top, held a
+         beat past first paint so fonts and layout can settle and the page's
+         own entrance animation (headings/sections fading and sliding in)
+         finishes out of sight instead of playing in front of the visitor on
+         every plain reload. experience.ts fades it out once that settle is
+         done. On the intro path the mark is hidden and the cover stays a
+         plain solid field, removed the instant the real intro overlay (its
+         own green field + logo) takes over, same as before. */
       /* Hex literals, not var(--surface) / var(--brand): style.css (where
          those are defined) is still loading at this point, and an unset
          custom property resolves to nothing rather than falling back, which
@@ -61,16 +68,56 @@
         position: fixed;
         inset: 0;
         z-index: 999999;
-        background: #f2f1ec;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(242, 241, 236, 0.86);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        transition: opacity 0.4s ease;
       }
       :root[data-theme="dark"] #preload-cover {
-        background: #101710;
+        background: rgba(16, 23, 16, 0.86);
       }
       :root[data-preload-intro] #preload-cover {
         background: #55a630;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
       }
       :root[data-theme="dark"][data-preload-intro] #preload-cover {
         background: #62b83a;
+      }
+      #preload-cover.is-leaving {
+        opacity: 0;
+      }
+      .preload-mark {
+        width: 48px;
+        height: 48px;
+        fill: #0f1e09;
+        animation: preload-pulse 1.1s ease-in-out infinite;
+      }
+      :root[data-theme="dark"] .preload-mark {
+        fill: #e8ece3;
+      }
+      :root[data-preload-intro] .preload-mark {
+        display: none;
+      }
+      @keyframes preload-pulse {
+        0%,
+        100% {
+          opacity: 0.45;
+          transform: scale(0.94);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .preload-mark {
+          animation: none;
+          opacity: 0.9;
+        }
       }
     </style>
     <noscript>
@@ -81,9 +128,23 @@
       </style>
     </noscript>
     <link rel="icon" href="/assets/mark.svg" type="image/svg+xml" />
+    <link rel="icon" href="/assets/icon.png" type="image/png" sizes="512x512" />
+    <link rel="apple-touch-icon" href="/assets/touch.png" sizes="180x180" />
+    <link rel="canonical" href="https://zxenostudio.com/" />
   </head>
   <body>
-    <div id="preload-cover"></div>
+    <div id="preload-cover">
+      <svg
+        class="preload-mark"
+        viewBox="0 0 1560 1600"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M0 0H456V456L908 980V984H456L444 975 0 462ZM0 1460L456 980V1600H0ZM1104 0H1560V621H1104ZM648 615H1104L1560 1140V1600H1104V1144Z"
+        />
+      </svg>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

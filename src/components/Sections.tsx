@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { HeroShowcase } from "./HeroShowcase";
 import { Project, projects, services, team } from "../content";
 import {
@@ -16,6 +17,7 @@ import {
   VolumeX,
   Sun,
   Moon,
+  UserRound,
 } from "lucide-react";
 
 /* The ZXENO mark, inline so it takes the colour of whatever tone it sits on. */
@@ -151,29 +153,186 @@ export function Team() {
           One studio, creating together.
         </p>
       </div>
-      <div className="team-list">
-        {team.map((member) => (
-          <article className="team-member" key={member.name}>
-            <span className="member-monogram" aria-hidden="true">
-              {member.name
-                .split(" ")
-                .map((part) => part[0])
-                .slice(0, 2)
-                .join("")}
-            </span>
-            <div className="member-identity">
-              <h3>{member.name}</h3>
-              <p>{member.role}</p>
-              <ul className="member-tags">
-                {member.techStack.map((tool) => (
-                  <li key={tool}>{tool}</li>
-                ))}
-              </ul>
-            </div>
-          </article>
-        ))}
-      </div>
+      <TeamTree />
     </section>
+  );
+}
+
+/* Which badge colour a role reads as. Checked most-specific first: "CMO" and
+   "Co-Founder" would otherwise also match a plainer "Founder" or "developer"
+   rule, since roles are combined titles like "Full Stack Developer / CMO". */
+function roleColor(role: string) {
+  const r = role.toLowerCase();
+  if (r.includes("cmo")) return "cmo";
+  if (r.includes("co-founder")) return "co-founder";
+  if (r.includes("founder")) return "founder";
+  if (r.includes("editor") || r.includes("colorist")) return "editor";
+  if (r.includes("software engineer") || r.includes("full stack developer"))
+    return "engineer";
+  if (r.includes("3d") || r.includes("motion designer")) return "designer";
+  return undefined;
+}
+
+// Root to leaves: everyone is grouped under the same tier their badge colour
+// already reads as, so the org chart and the colour-coding always agree.
+const TIER_ORDER = [
+  "founder",
+  "co-founder",
+  "cmo",
+  "engineer",
+  "designer",
+  "editor",
+] as const;
+
+function teamTiers() {
+  const groups = new Map<string, typeof team>();
+  for (const member of team) {
+    const key = roleColor(member.role) ?? "other";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(member);
+  }
+  return [...TIER_ORDER, "other"]
+    .filter((key) => groups.has(key))
+    .map((key) => ({ key, members: groups.get(key)! }));
+}
+
+/* An org chart: each tier hangs from a branch point centred under the tier
+   above, with a diagonal line running to every card in it — the same shape
+   as a family tree, just drawn with real DOM coordinates so it survives the
+   2-column reflow on mobile. Recomputed on resize/font-load since the reveal
+   and reflow both shift card positions after the first paint. */
+function TeamTree() {
+  const tiers = teamTiers();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLDivElement | null)[][]>([]);
+  const [lines, setLines] = useState<{ stems: string[]; drops: string[]; dots: { x: number; y: number }[] }>({
+    stems: [],
+    drops: [],
+    dots: [],
+  });
+
+  useLayoutEffect(() => {
+    function measure() {
+      const root = rootRef.current;
+      if (!root) return;
+      const rootBox = root.getBoundingClientRect();
+      const branchX = rootBox.width / 2;
+      const stems: string[] = [];
+      const drops: string[] = [];
+      const dots: { x: number; y: number }[] = [];
+      for (let i = 1; i < tiers.length; i++) {
+        const prevRow = rowRefs.current[i - 1];
+        const cards = cardRefs.current[i] ?? [];
+        if (!prevRow || !cards.length) continue;
+        const prevBox = prevRow.getBoundingClientRect();
+        const branchY = prevBox.bottom - rootBox.top;
+        const dropY = branchY + 22;
+        stems.push(`M ${branchX} ${branchY} L ${branchX} ${dropY}`);
+        dots.push({ x: branchX, y: dropY });
+        cards.forEach((card) => {
+          if (!card) return;
+          const cardBox = card.getBoundingClientRect();
+          const cx = cardBox.left + cardBox.width / 2 - rootBox.left;
+          const cy = cardBox.top - rootBox.top;
+          drops.push(`M ${branchX} ${dropY} L ${cx} ${cy}`);
+        });
+      }
+      setLines({ stems, drops, dots });
+    }
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (rootRef.current) ro.observe(rootRef.current);
+    addEventListener("resize", measure);
+    document.fonts?.ready.then(measure);
+    return () => {
+      ro.disconnect();
+      removeEventListener("resize", measure);
+    };
+  }, [tiers.length]);
+
+  return (
+    <div className="team-tree" ref={rootRef}>
+      <svg className="tree-lines" aria-hidden="true">
+        {lines.stems.map((d, i) => (
+          <path key={`stem-${i}`} d={d} />
+        ))}
+        {lines.drops.map((d, i) => (
+          <path key={`drop-${i}`} d={d} />
+        ))}
+        {lines.dots.map((dot, i) => (
+          <circle key={`dot-${i}`} cx={dot.x} cy={dot.y} r="4" />
+        ))}
+      </svg>
+      {tiers.map((tier, ti) => (
+        <div className="tree-row" key={tier.key} ref={(el) => { rowRefs.current[ti] = el; }}>
+          {tier.members.map((member, mi) => (
+            <div
+              className="tree-node"
+              key={member.name}
+              ref={(el) => {
+                (cardRefs.current[ti] ??= [])[mi] = el;
+              }}
+            >
+              <LanyardCard member={member} index={mi} />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* A hanging ID badge: swings gently on its strap at rest, and flips over on
+   hover or a tap/click/Enter to show the tech stack printed on its back. */
+function LanyardCard({
+  member,
+  index,
+}: {
+  member: (typeof team)[number];
+  index: number;
+}) {
+  const [flipped, setFlipped] = useState(false);
+  return (
+    <div
+      className="lanyard"
+      style={{ "--sway-delay": `${(index % 5) * -0.7}s` } as CSSProperties}
+    >
+      <span className="lanyard-strap" aria-hidden="true">
+        <span className="lanyard-clip" />
+      </span>
+      <button
+        type="button"
+        className="lanyard-flip"
+        aria-pressed={flipped}
+        aria-label={`${member.name}, ${member.role}. ${flipped ? "Showing" : "Show"} tech stack.`}
+        onClick={() => setFlipped((f) => !f)}
+      >
+        <span className="lanyard-card">
+          <span className="lanyard-face lanyard-front">
+            <span
+              className="lanyard-avatar"
+              data-role-color={roleColor(member.role)}
+              aria-hidden="true"
+            >
+              <UserRound aria-hidden="true" />
+            </span>
+            <h3>{member.name}</h3>
+            <p>{member.role}</p>
+          </span>
+          <span className="lanyard-face lanyard-back">
+            <span className="eyebrow lanyard-back-label">Tech stack</span>
+            <ul className="member-tags">
+              {member.techStack.map((tool, tagIndex) => (
+                <li key={tool} style={{ "--tag-i": tagIndex } as CSSProperties}>
+                  {tool}
+                </li>
+              ))}
+            </ul>
+          </span>
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -336,6 +495,7 @@ export function Navigation() {
           if ((e.target as HTMLElement).closest("a")) setMenuOpen(false);
         }}
       >
+        <a href="/">Home</a>
         <a href="/work">Work</a>
         <a href="/about">About</a>
         <a href="/pricing">Pricing</a>

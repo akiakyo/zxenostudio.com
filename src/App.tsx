@@ -61,7 +61,12 @@ export default function App() {
           <>
             <PageHeading
               label="Services"
-              title="Ideas, in every form."
+              title={
+                <>
+                  <span className="accent-italic">Ideas,</span> in every
+                  form.
+                </>
+              }
               copy="Eleven disciplines. One studio."
             />
             <ServiceDirectory />
@@ -81,7 +86,11 @@ export default function App() {
           <>
             <PageHeading
               label="About"
-              title="Meet ZXENO."
+              title={
+                <>
+                  Meet <span className="accent-bold">ZXENO.</span>
+                </>
+              }
               copy="Bacoor, Philippines. Working everywhere."
             />
             <About />
@@ -91,7 +100,11 @@ export default function App() {
           <>
             <PageHeading
               label="Pricing"
-              title="Let's talk scope."
+              title={
+                <>
+                  Let's talk <span className="accent-italic">scope.</span>
+                </>
+              }
               copy="Creative work built around your project. All pricing in PHP."
             />
             <Pricing />
@@ -101,7 +114,9 @@ export default function App() {
           <>
             <PageHeading
               label="Book a call"
-              title="What's on your mind?"
+              title={
+                <span className="accent-bold">What's on your mind?</span>
+              }
               copy="Tell us about your next project."
             />
             <Booking />

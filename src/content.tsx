@@ -206,6 +206,16 @@ export const team = [
     techStack: ["Blender", "Cinema 4D", "After Effects", "Photoshop", "Octane Render"],
   },
   {
+    name: "Kierre Paolo",
+    role: "Motion Designer",
+    techStack: ["After Effects", "Cinema 4D", "Illustrator", "Photoshop"],
+  },
+  {
+    name: "Haq Equia",
+    role: "Motion Designer",
+    techStack: ["After Effects", "Illustrator", "Photoshop", "Figma"],
+  },
+  {
     name: "Karl Emanuel",
     role: "Video Editor / Motion Designer",
     techStack: ["Photoshop", "After Effects", "DaVinci Resolve"],
@@ -219,15 +229,5 @@ export const team = [
     name: "Neo Hapa",
     role: "Colorist / Video Editor",
     techStack: ["DaVinci Resolve", "Premiere Pro", "After Effects"],
-  },
-  {
-    name: "Kierre Paolo",
-    role: "Motion Designer",
-    techStack: ["After Effects", "Cinema 4D", "Illustrator", "Photoshop"],
-  },
-  {
-    name: "Haq Equia",
-    role: "Motion Designer",
-    techStack: ["After Effects", "Illustrator", "Photoshop", "Figma"],
   },
 ];

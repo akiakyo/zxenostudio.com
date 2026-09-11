@@ -26,7 +26,7 @@
   --gutter: clamp(20px, 3.2vw, 64px);
   font-family: "Bricolage Grotesque", Arial, sans-serif;
   color: var(--ink);
-  background: var(--brand);
+  background: var(--surface);
   font-synthesis: none;
 }
 :root[data-theme="dark"] {
@@ -80,60 +80,244 @@
   font-size: 14px;
   line-height: 1.5;
 }
-.team-list {
-  border-top: 1px solid var(--rule);
-}
-.team-member {
-  display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 24px;
+/* Org chart: each row of lanyards is a tier, stacked with enough gap for the
+   branch stem + diagonal fan that TeamTree draws into the SVG overlay behind
+   them (see .tree-lines). The overlay is sized and positioned by this being
+   its `position: relative` containing block. */
+.team-tree {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  border-bottom: 1px solid var(--rule);
-  padding: 28px 0;
-  transition:
-    background 0.3s,
-    padding 0.3s;
+  gap: 64px;
+  padding-top: 12px;
 }
-.team-member:hover,
-.team-member:focus-within {
+.tree-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tree-lines path {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1.5;
+}
+.tree-lines circle {
+  fill: var(--brand-deep);
+}
+.tree-row {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px 32px;
+}
+.tree-node {
+  flex: 0 1 200px;
+  max-width: 220px;
+}
+/* Each member hangs on its own badge-on-a-strap, swinging gently at rest —
+   transform-origin stays at the top so the whole thing pivots like it's
+   actually clipped to a lanyard, not just wobbling in place. */
+.lanyard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  transform-origin: top center;
+  animation: lanyard-sway 4.5s ease-in-out infinite;
+  animation-delay: var(--sway-delay, 0s);
+}
+.lanyard:hover,
+.lanyard:focus-within {
+  animation-play-state: paused;
+}
+/* Lifted above its grid neighbours while flipped open, so its shadow and
+   rounded corners read cleanly against the row above and below rather than
+   tucking behind them. */
+.lanyard:hover,
+.lanyard:focus-within,
+.lanyard:has(.lanyard-flip[aria-pressed="true"]) {
+  z-index: 1;
+}
+@keyframes lanyard-sway {
+  0%,
+  100% {
+    transform: rotate(-2.2deg);
+  }
+  50% {
+    transform: rotate(2.2deg);
+  }
+}
+.lanyard-strap {
+  position: absolute;
+  top: 0;
+  width: 30px;
+  height: 46px;
+  background: linear-gradient(180deg, var(--brand), var(--brand-deep));
+  border-radius: 3px 3px 1px 1px;
+}
+.lanyard-clip {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  translate: -50% 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+}
+.lanyard-flip {
+  display: block;
+  width: 100%;
+  max-width: 210px;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  perspective: 1000px;
+}
+.lanyard-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s var(--ease);
+  transform-style: preserve-3d;
+}
+.lanyard-flip:hover .lanyard-card,
+.lanyard-flip[aria-pressed="true"] .lanyard-card {
+  transform: rotateY(180deg);
+}
+.lanyard-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--rule-soft);
+  background: var(--surface);
+  box-shadow: 0 12px 24px rgba(15, 30, 9, 0.1);
+  backface-visibility: hidden;
+}
+/* A short tech stack (5-6 tools) still sits centred like the front; a long
+   one (20+, for the heavier engineering roles) scrolls inside the fixed
+   badge instead of spilling past its edges into the cards above and below —
+   the overlap that showed up once a couple of members' real stacks landed. */
+.lanyard-back {
+  transform: rotateY(180deg);
+  background: var(--contrast);
+  color: var(--contrast-fg);
+  justify-content: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+.lanyard-back-label {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.lanyard-avatar {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--on-brand);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+.lanyard-avatar .lucide {
+  width: 32px;
+  height: 32px;
+  stroke-width: 1.6;
+}
+.lanyard-front h3 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.lanyard-front p {
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0.75;
+}
+/* Founder, co-founder, exec, engineering, design and edit roles each get
+   their own badge colour so the wall reads at a glance, not just on flip. */
+.lanyard-avatar[data-role-color="founder"] {
+  background: #d9463f;
+  color: #fff;
+}
+.lanyard-avatar[data-role-color="co-founder"] {
+  background: #7a5230;
+  color: #fff;
+}
+.lanyard-avatar[data-role-color="cmo"] {
+  background: #ec6a99;
+  color: #fff;
+}
+.lanyard-avatar[data-role-color="engineer"] {
+  background: #3b7dd8;
+  color: #fff;
+}
+.lanyard-avatar[data-role-color="designer"] {
   background: var(--brand-lift);
-  padding-left: 12px;
-  padding-right: 12px;
+  color: var(--on-brand);
 }
-.member-monogram {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: -0.06em;
-  align-self: start;
-  padding-top: 4px;
+.lanyard-avatar[data-role-color="editor"] {
+  background: #f2c19c;
+  color: var(--on-brand);
 }
-.member-identity h3 {
-  font-size: clamp(23px, 2.8vw, 44px);
-  font-weight: 500;
-  letter-spacing: -0.05em;
-}
-.member-identity p {
-  font-size: 12px;
-  line-height: 1.5;
-  margin-top: 8px;
-}
-/* Tags, not cards: a wrapped row of small rounded pills rather than a grid
-   of boxes, so it reads as detail on the existing list row instead of a
-   second layout competing with it. */
+/* Tags cascade in one after another once the back is showing, instead of
+   appearing all at once — the "cool animation" the flip earns on landing. */
 .member-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 14px 0 0;
+  justify-content: center;
+  gap: 6px;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
 }
 .member-tags li {
-  font-size: 11px;
+  font-size: 10.5px;
   line-height: 1;
-  padding: 7px 12px;
-  border: 1px solid var(--rule-soft);
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
   border-radius: 999px;
+  opacity: 0;
+  transform: translateY(6px);
+  /* A transition (not a keyframe animation) reveals each tag: the site's own
+     reduced-motion rule (below, in the accessibility section) forces every
+     animation and transition to none, which would strand an animation's
+     `forwards` end state unreached and leave these permanently invisible —
+     a transition's end value still applies instantly once the transition
+     itself is suppressed, so the tags simply appear without the stagger. */
+  transition:
+    opacity 0.35s var(--ease),
+    transform 0.35s var(--ease);
+  transition-delay: calc(var(--tag-i, 0) * 0.05s + 0.2s);
+}
+.lanyard-flip:hover .member-tags li,
+.lanyard-flip[aria-pressed="true"] .member-tags li {
+  opacity: 1;
+  transform: translateY(0);
 }
 * {
   box-sizing: border-box;
@@ -235,11 +419,18 @@ video {
   background: var(--brand);
   transition:
     background 0.25s,
-    color 0.25s;
+    color 0.25s,
+    padding 0.25s var(--ease);
 }
 .navigation.dark {
   background: var(--contrast);
   color: var(--contrast-fg);
+}
+/* Thinner header once the page has scrolled a little, so the bar stays out
+   of the way of content without ever fully disappearing. */
+.navigation.compact {
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 .brand {
   display: flex;
@@ -254,6 +445,14 @@ video {
 .brand .brand-mark {
   width: 29px;
   height: 30px;
+  transition:
+    width 0.25s var(--ease),
+    height 0.25s var(--ease);
+}
+.navigation.compact .brand img,
+.navigation.compact .brand .brand-mark {
+  width: 22px;
+  height: 23px;
 }
 .brand sup {
   font-size: 7px;
@@ -270,6 +469,7 @@ nav {
 nav a {
   position: relative;
   padding: 6px 0;
+  transition: color 0.25s var(--ease);
 }
 nav a:after {
   content: "";
@@ -285,6 +485,17 @@ nav a:after {
 }
 nav a:hover:after {
   transform: scaleX(1);
+}
+/* Colour the hover green on real pointers only: a touch "tap" can leave :hover
+   stuck active on mobile, which would otherwise strand a link green until the
+   next tap elsewhere. currentColor keeps the underline above in step with it. */
+@media (hover: hover) and (pointer: fine) {
+  .navigation.paper nav a:hover {
+    color: var(--brand-text);
+  }
+  .navigation.dark nav a:hover {
+    color: var(--brand-lift);
+  }
 }
 .skip-link {
   position: fixed;
@@ -667,13 +878,46 @@ dialog {
   background: var(--contrast);
   color: var(--contrast-fg);
   z-index: 100;
+  /* Native open/close animation: the dialog stays in the top layer for the
+     duration of the transition instead of vanishing the instant showModal()/
+     close() runs, as long as `display` and `overlay` are transitioned too
+     (allow-discrete lets a transition run on properties that would otherwise
+     jump straight to their end value). @starting-style below supplies the
+     "before" frame for the opening transition — without it the dialog would
+     already be at its open state on the very first frame it's shown. */
+  opacity: 0;
+  transform: scale(0.96) translateY(10px);
+  transition:
+    opacity 0.22s var(--ease),
+    transform 0.22s var(--ease),
+    display 0.22s allow-discrete,
+    overlay 0.22s allow-discrete;
 }
 dialog::backdrop {
   background: var(--contrast);
+  opacity: 0;
+  transition:
+    opacity 0.22s var(--ease),
+    display 0.22s allow-discrete,
+    overlay 0.22s allow-discrete;
 }
 dialog[open] {
   display: flex;
   flex-direction: column;
+  opacity: 1;
+  transform: none;
+}
+dialog[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  dialog[open]::backdrop {
+    opacity: 0;
+  }
 }
 #film-dialog {
   width: 100vw;
@@ -981,12 +1225,15 @@ dialog video {
     flex-direction: column;
     margin: 40px 0;
   }
-  .team-member {
-    grid-template-columns: 42px 1fr;
-    gap: 12px;
+  .team-tree {
+    gap: 52px;
   }
-  .member-identity h3 {
-    font-size: 28px;
+  .tree-row {
+    gap: 40px 16px;
+  }
+  .tree-node {
+    flex-basis: 150px;
+    max-width: 170px;
   }
   .service {
     grid-template-columns: 1fr;
@@ -1019,18 +1266,6 @@ dialog video {
   }
   html {
     scroll-padding-top: 120px;
-  }
-  .team-member {
-    padding: 22px 0;
-  }
-  .member-monogram {
-    font-size: 18px;
-  }
-  .member-identity h3 {
-    font-size: 25px;
-  }
-  .member-identity p {
-    font-size: 11px;
   }
   .intro-label {
     max-width: 190px;
@@ -1273,17 +1508,6 @@ main > section[data-tone="dark"] {
 }
 .team {
   padding-bottom: 100px;
-}
-.team-member:hover,
-.team-member:focus-within {
-  background: var(--brand-soft);
-  box-shadow: inset 3px 0 var(--brand);
-}
-.member-monogram {
-  color: var(--brand-deep);
-}
-.member-identity p {
-  font-size: 13px;
 }
 .services {
   padding-top: 90px;
@@ -1660,6 +1884,9 @@ footer {
   .navigation nav a:nth-child(5) {
     transition-delay: 0.32s;
   }
+  .navigation nav a:nth-child(6) {
+    transition-delay: 0.38s;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1684,6 +1911,16 @@ footer {
 }
 .about h2 .accent,
 .contact-title em {
+  color: var(--brand-text);
+}
+/* Page-heading accents: a bold or italic word picked out in brand green,
+   independent of .accent's own always-italic serif treatment above. */
+.accent-italic {
+  font-style: italic;
+  color: var(--brand-text);
+}
+.accent-bold {
+  font-weight: 800;
   color: var(--brand-text);
 }
 

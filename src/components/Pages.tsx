@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   CreditCard,
   ClipboardList,
@@ -94,7 +95,7 @@ export function PageHeading({
   copy,
 }: {
   label: string;
-  title: string;
+  title: ReactNode;
   copy: string;
 }) {
   return (

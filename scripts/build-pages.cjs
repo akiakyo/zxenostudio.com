@@ -12,10 +12,12 @@ for (const [route, title] of Object.entries({
   fs.mkdirSync(folder, { recursive: true });
   fs.writeFileSync(
     path.join(folder, "index.html"),
-    html.replace(
-      /<title>.*?<\/title>/,
-      `<title>${title} — ZXENO Studio</title>`,
-    ),
+    html
+      .replace(/<title>.*?<\/title>/, `<title>${title} — ZXENO Studio</title>`)
+      .replace(
+        /<link rel="canonical" href="[^"]*" \/>/,
+        `<link rel="canonical" href="https://zxenostudio.com/${route}" />`,
+      ),
   );
 }
 fs.writeFileSync(
