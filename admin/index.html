@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Admin — ZXENO Studio</title>
+    <script>
+      /* Same theme resolution as the main site, so the choice carries over. */
+      (function () {
+        var root = document.documentElement;
+        try {
+          var saved = localStorage.getItem("zxeno-theme");
+          var dark = saved
+            ? saved === "dark"
+            : matchMedia("(prefers-color-scheme: dark)").matches;
+          root.dataset.theme = dark ? "dark" : "light";
+        } catch (e) {
+          root.dataset.theme = "light";
+        }
+      })();
+    </script>
+    <link rel="icon" href="/assets/mark.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/admin/main.tsx"></script>
+  </body>
+</html>

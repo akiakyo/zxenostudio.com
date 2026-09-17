@@ -79,3 +79,17 @@ Typography uses locally hosted Bricolage Grotesque; its license is in `public/fo
 The supplied Google document was retrieved and its linked folders reviewed. Assets include six PNG website icons, four JPG service illustrations (web, motion, graphic design, merchandise), and 3D sample subfolders for VFX, iPhone, JBL headset and Sauvage Dior. The four service illustrations are included in `public/media/services`. The existing 3D toolkit and film media are preserved. Additional icon and 3D sample files are not imported. The homepage identifies brands featured in the existing portfolio rather than inventing endorsements.
 
 Validation: `npm run build` and `npx playwright test tests/multipage.spec.ts`. Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to your Chrome path if Playwright browsers are not installed. Older tests asserting every section exists on the homepage describe the previous single-page layout.
+
+## Admin (admin.zxenostudio.com)
+
+A separate Vite entry (`admin/index.html` → `src/admin/`) served on its own subdomain from the same Vercel project. `middleware.ts` serves the admin app for every page path on `admin.zxenostudio.com` and returns 404 for `/admin` on any other host; `vercel.json` adds `noindex` and anti-framing headers on the admin host. DNS is an A record for `admin` at Namecheap pointing to Vercel. Brand tokens and the font live in `src/tokens.css`, shared by both entries.
+
+Functions in `api/admin/`: `login`, `logout`, `me` and `password`. Accounts live in Neon Postgres (Vercel Marketplace, `DATABASE_URL`); the tables are in `db/schema.sql`.
+
+- **Accounts.** `scripts/seed-admins.ts` holds the list of usernames. `npm run seed-admins` applies the schema and creates any missing account with the starting password `<username>123`; existing accounts are untouched. `npm run seed-admins -- --reset <username>` puts one account back to its starting password. Both read `.env.local` (`vercel env pull .env.local`).
+- **First sign-in.** An account on its starting password must set a new one before it can do anything else. The starting password can never be chosen again, and new passwords need at least 10 characters.
+- **Sessions.** A signed, `HttpOnly`, `Secure`, `SameSite=Strict` host-only cookie lasting 8 hours, signed with `ADMIN_SESSION_SECRET`. Each request re-reads the account, so changing a password signs out that account's other devices; rotating the secret signs out everyone. Login, logout and password changes also require a same-origin `Origin` header.
+- **Lockout.** 5 failed sign-ins for one account, or 20 from one IP, block sign-in for 15 minutes.
+- **New admin endpoints** should call `requireSession(request)` from `api/_lib/auth.ts` and return 401 when it is `null`. It also rejects accounts still on their starting password. The admin page itself is a public shell; the data behind it is what is protected.
+
+`npm run dev` serves the page at `/admin/` but not the functions; use `vercel dev` to run both locally.

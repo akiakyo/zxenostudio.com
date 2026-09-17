@@ -1,0 +1,58 @@
+/* ZXENO brand palette, in two themes.
+   --ink and --paper are roles, not fixed colours: --ink is always the reading
+   contrast and --paper always the recessive surface, so every ink/paper pair in
+   this file inverts correctly when the theme flips. Surfaces that must stay
+   dark in both themes (film player, reel portal, video mattes) use --contrast.
+   Ratios below are measured against the surface each token actually sits on. */
+:root {
+  color-scheme: light;
+  --brand: #55a630; /* brand green: fills and bands, --on-brand on it 6.9:1 */
+  --brand-text: #4a9227; /* green display text on the surface, 3.4:1 */
+  --brand-deep: #2f6b1e; /* small green text and hairlines, 5.7:1 */
+  --brand-lift: #8fd45f; /* green on the dark sections, 11.8:1 */
+  --brand-soft: #dfe8d4; /* pale green wash for hovers and pills */
+  --on-brand: #0f1e09; /* text on bright brand green, both themes */
+  --ink: #0f1e09; /* near-black carrying the brand hue, 15.3:1 on paper */
+  --paper: #f2f1ec;
+  --surface: #f2f1ec; /* paper-tone sections */
+  --surface-fg: #0f1e09;
+  --band: #55a630; /* green-tone sections */
+  --band-fg: #0f1e09;
+  --contrast: #0f1e09; /* dark-tone sections and always-dark surfaces */
+  --contrast-fg: #f2f1ec;
+  --rule: rgba(15, 30, 9, 0.4);
+  --rule-soft: rgba(15, 30, 9, 0.16);
+  --ease: cubic-bezier(0.76, 0, 0.24, 1);
+  --gutter: clamp(20px, 3.2vw, 64px);
+  font-family: "Bricolage Grotesque", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--surface);
+  font-synthesis: none;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --brand: #62b83a; /* lifted so it holds up against a dark ground */
+  --brand-text: #8fd45f; /* green display text on the dark surface, 8.9:1 */
+  --brand-deep: #a9dd8c; /* small green text and hairlines, 11.6:1 */
+  --brand-lift: #8fd45f;
+  --brand-soft: #1d2b17; /* dark green wash for hovers */
+  --on-brand: #0f1e09;
+  --ink: #e8ece3; /* the reading contrast is now the light tone */
+  --paper: #101710;
+  --surface: #101710;
+  --surface-fg: #e8ece3;
+  --band: #24501a; /* the green band deepens so it is not a glare in the dark */
+  --band-fg: #eef2e8;
+  --contrast: #070b06;
+  --contrast-fg: #e8ece3;
+  --rule: rgba(232, 236, 227, 0.28);
+  --rule-soft: rgba(232, 236, 227, 0.12);
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque.ttf") format("truetype");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
