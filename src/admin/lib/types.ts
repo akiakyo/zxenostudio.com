@@ -224,3 +224,33 @@ export type CalendarEvent = {
   assigneeName: string | null;
   isPrivate: boolean;
 };
+
+export type ChatReaction = { reaction: string; users: string[] };
+
+export type ChatMessage = {
+  id: string;
+  author: string;
+  authorName: string;
+  authorTitle: string;
+  authorAccess: Access;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  reactions: ChatReaction[];
+};
+
+export type ChatMember = {
+  username: string;
+  name: string;
+  title: string;
+  access: Access;
+  online: boolean;
+};
+
+export type ChatPage = {
+  now: string;
+  messages: ChatMessage[];
+  hasMore: boolean;
+  members: ChatMember[];
+};

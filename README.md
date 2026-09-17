@@ -98,6 +98,7 @@ The sidebar groups the sections as Overview (dashboard with quick actions, annou
 - **Private tasks** are visible only to the person who made them, even to executives, and never reach the activity feed.
 - **Assets** are links (Drive, Dropbox, Frame.io); nothing is uploaded.
 - **Money** is Philippine pesos. "Overdue" invoices are sent invoices past their due date; it is computed, not stored.
+- **Studio chat** (`api/_lib/chat.ts`) is one room for everyone. Clients poll every 3 seconds for messages changed since the last poll, which also marks the person online for 45 seconds. Reactions come from a fixed set of Lucide icons listed in both `api/_lib/chat.ts` and `src/admin/pages/Chat.tsx`. People delete their own messages; executives can delete any.
 - **Dates** are stored as `YYYY-MM-DD` text, and "today" is Manila time.
 - **Settings.** People edit their own name, phone and bio. Usernames never change; roles only through executives.
 

@@ -216,3 +216,28 @@ CREATE INDEX IF NOT EXISTS admin_tasks_due_idx ON admin_tasks (due_date);
 CREATE INDEX IF NOT EXISTS admin_milestones_project_idx ON admin_milestones (project_id);
 CREATE INDEX IF NOT EXISTS admin_invoices_due_idx ON admin_invoices (due_date);
 CREATE INDEX IF NOT EXISTS admin_activity_created_idx ON admin_activity (created_at DESC);
+
+-- Studio chat: one room for the whole team. Messages are soft-deleted so
+-- clients polling for changes learn about removals; any change to a message or
+-- its reactions bumps updated_at, which is what polling reads.
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_seen_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS admin_chat_messages (
+  id         bigserial PRIMARY KEY,
+  author     text NOT NULL REFERENCES admin_users (username),
+  body       text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
+);
+
+-- Reactions are keys from a fixed set of Lucide icons (see api/_lib/chat.ts).
+CREATE TABLE IF NOT EXISTS admin_chat_reactions (
+  message_id bigint NOT NULL REFERENCES admin_chat_messages (id) ON DELETE CASCADE,
+  username   text NOT NULL REFERENCES admin_users (username),
+  reaction   text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (message_id, username, reaction)
+);
+
+CREATE INDEX IF NOT EXISTS admin_chat_messages_updated_idx ON admin_chat_messages (updated_at);

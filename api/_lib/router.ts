@@ -2,6 +2,7 @@
    stays a handful of Vercel Functions (the Hobby plan allows 12). The last path
    segment picks the section: /api/admin/projects, /api/admin/calendar, … */
 import { json, requireSession, sameOrigin, type Session } from "./auth.js";
+import * as chat from "./chat.js";
 import * as crud from "./crud.js";
 import { databaseError, HttpError, readBody } from "./http.js";
 import { RESOURCES } from "./resources.js";
@@ -27,6 +28,14 @@ const VIEWS: Record<string, Partial<Record<string, Handler>>> = {
         url.searchParams.get("username"),
         await readBody(r),
       ),
+  },
+  chat: {
+    GET: (s, _r, url) => chat.read(s, url.searchParams),
+    POST: async (s, r) => chat.send(s, await readBody(r)),
+    DELETE: (s, _r, url) => chat.remove(s, url.searchParams.get("id")),
+  },
+  "chat-reactions": {
+    POST: async (s, r) => chat.toggleReaction(s, await readBody(r)),
   },
   profile: {
     GET: (s) => views.profile(s),

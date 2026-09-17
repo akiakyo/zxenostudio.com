@@ -15,6 +15,7 @@ import {
   Lock,
   LogOut,
   Megaphone,
+  MessageCircle,
   Menu as MenuIcon,
   MessagesSquare,
   NotebookPen,
@@ -34,6 +35,7 @@ import { ArchivesPage } from "./pages/Archives";
 import { AssetsPage } from "./pages/Assets";
 import { BriefsPage } from "./pages/Briefs";
 import { CalendarPage } from "./pages/Calendar";
+import { ChatPage } from "./pages/Chat";
 import { ClientsPage } from "./pages/Clients";
 import { DashboardPage } from "./pages/Dashboard";
 import { DeadlinesPage } from "./pages/Deadlines";
@@ -65,6 +67,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     group: "Overview",
     items: [
       { path: "/", label: "Dashboard", icon: LayoutDashboard, page: DashboardPage },
+      { path: "/chat", label: "Studio chat", icon: MessageCircle, page: ChatPage },
       { path: "/announcements", label: "Announcements", icon: Megaphone, page: AnnouncementsPage },
       { path: "/activity", label: "Activity feed", icon: Activity, page: ActivityPage },
     ],
