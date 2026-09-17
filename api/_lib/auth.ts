@@ -6,14 +6,15 @@
    Rotating ADMIN_SESSION_SECRET ends every session at once.
    Files under api/_lib are not deployed as functions (leading underscore). */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getUser } from "./users.js";
+import { getUser, type Access } from "./users.js";
 
 export const COOKIE_NAME = "__Host-zxeno_admin";
 const SESSION_SECONDS = 8 * 60 * 60;
 
 function secret(): string {
   const value = process.env.ADMIN_SESSION_SECRET;
-  if (!value) throw new Error("Missing environment variable ADMIN_SESSION_SECRET");
+  if (!value)
+    throw new Error("Missing environment variable ADMIN_SESSION_SECRET");
   return value;
 }
 
@@ -38,6 +39,9 @@ export type Session = {
   username: string;
   expiresAt: number;
   mustChangePassword: boolean;
+  name: string;
+  title: string;
+  access: Access;
 };
 
 function readToken(request: Request) {
@@ -77,6 +81,9 @@ export async function readSession(request: Request): Promise<Session | null> {
     username: token.username,
     expiresAt: token.expiresAt,
     mustChangePassword: user.mustChangePassword,
+    name: user.name,
+    title: user.title,
+    access: user.access,
   };
 }
 

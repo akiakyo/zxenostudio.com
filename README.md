@@ -84,9 +84,26 @@ Validation: `npm run build` and `npx playwright test tests/multipage.spec.ts`. S
 
 A separate Vite entry (`admin/index.html` → `src/admin/`) served on its own subdomain from the same Vercel project. `middleware.ts` serves the admin app for every page path on `admin.zxenostudio.com` and returns 404 for `/admin` on any other host; `vercel.json` adds `noindex` and anti-framing headers on the admin host. DNS is an A record for `admin` at Namecheap pointing to Vercel. Brand tokens and the font live in `src/tokens.css`, shared by both entries.
 
-Functions in `api/admin/`: `login`, `logout`, `me` and `password`. Accounts live in Neon Postgres (Vercel Marketplace, `DATABASE_URL`); the tables are in `db/schema.sql`.
+Everything lives in Neon Postgres (Vercel Marketplace, `DATABASE_URL`); the tables are in `db/schema.sql`, and every change to it must stay additive and re-runnable. Sign-in uses four functions in `api/admin/` (`login`, `logout`, `me`, `password`). All workspace data goes through one catch-all function, `api/admin/[resource].ts`, which keeps the project well inside the Hobby plan's 12-function limit:
 
-- **Accounts.** `scripts/seed-admins.ts` holds the list of usernames. `npm run seed-admins` applies the schema and creates any missing account with the starting password `<username>123`; existing accounts are untouched. `npm run seed-admins -- --reset <username>` puts one account back to its starting password. Both read `.env.local` (`vercel env pull .env.local`).
+- `api/_lib/router.ts` picks the section from the last path segment (`/api/admin/projects`, `/api/admin/calendar`, …).
+- `api/_lib/resources.ts` declares each list-and-form table: its fields and validation, filters, and who may change or delete rows. `api/_lib/crud.ts` runs them and writes the activity feed.
+- `api/_lib/views.ts` holds the combined endpoints: dashboard, calendar, deadlines, executive overview, activity, team and profile.
+
+### Workspace
+
+The sidebar groups the sections as Overview (dashboard with quick actions, announcements, activity feed and weekly updates), Projects (projects with a schedule timeline and calendar, calendar, deadlines, archives), Tasks (my tasks, task overview board, private tasks), Creative (briefs, feedback loop, meeting notes, asset library), Business (clients, invoices) and Team (directory, executive overview, roles & permissions), then Settings.
+
+- **Access.** Each account has a free-text role title (e.g. "Co-Founder / COO") and an access level, `executive` or `member`. Executives change roles and access, post announcements, delete projects, clients and invoices, and open the executive overview; at least one executive always remains. The full matrix is on the Roles & permissions page (`src/admin/pages/Roles.tsx`) and must match `api/_lib/resources.ts`.
+- **Private tasks** are visible only to the person who made them, even to executives, and never reach the activity feed.
+- **Assets** are links (Drive, Dropbox, Frame.io); nothing is uploaded.
+- **Money** is Philippine pesos. "Overdue" invoices are sent invoices past their due date; it is computed, not stored.
+- **Dates** are stored as `YYYY-MM-DD` text, and "today" is Manila time.
+- **Settings.** People edit their own name, phone and bio. Usernames never change; roles only through executives.
+
+### Accounts and migrations
+
+- **Accounts.** `scripts/members.ts` lists each member's username, name, role and access. `npm run seed-admins` applies the schema and creates any missing account with the starting password `<username>123`. It fills in name, role and access only for accounts whose name is still blank, so edits made in the workspace are never overwritten. Run it against production before deploying a schema change. `npm run seed-admins -- --reset <username>` puts one account back to its starting password. Both read `.env.local` (`vercel env pull .env.local`).
 - **First sign-in.** An account on its starting password must set a new one before it can do anything else. The starting password can never be chosen again, and new passwords need at least 10 characters.
 - **Sessions.** A signed, `HttpOnly`, `Secure`, `SameSite=Strict` host-only cookie lasting 8 hours, signed with `ADMIN_SESSION_SECRET`. Each request re-reads the account, so changing a password signs out that account's other devices; rotating the secret signs out everyone. Login, logout and password changes also require a same-origin `Origin` header.
 - **Lockout.** 5 failed sign-ins for one account, or 20 from one IP, block sign-in for 15 minutes.

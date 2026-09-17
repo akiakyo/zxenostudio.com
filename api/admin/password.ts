@@ -32,7 +32,9 @@ export async function POST(request: Request): Promise<Response> {
   }
   if (next.length < MIN_PASSWORD_LENGTH || next.length > MAX_PASSWORD_LENGTH) {
     return json(
-      { error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters` },
+      {
+        error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      },
       { status: 400 },
     );
   }
