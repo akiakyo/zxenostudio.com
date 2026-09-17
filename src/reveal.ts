@@ -7,7 +7,6 @@ const HEADINGS = [
   ".about h2",
   ".work-title h2",
   ".team-heading h2",
-  ".timeline h2",
 ];
 
 const FADES = [
@@ -21,7 +20,6 @@ const FADES = [
   ".team-heading p",
   ".team-member",
   ".service",
-  ".timeline-month",
   ".quick-link",
   ".contact-title",
   ".contact-bottom > *",

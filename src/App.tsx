@@ -17,7 +17,6 @@ import {
   PageHeading,
   ServiceDirectory,
   HomeOverview,
-  Timeline,
   QuickLinks,
   ProjectApproach,
   Pricing,
@@ -53,7 +52,6 @@ export default function App() {
           <>
             <Hero />
             <HomeOverview />
-            <Timeline />
             <ProjectApproach />
             <QuickLinks />
           </>

@@ -17,20 +17,10 @@ import {
   ChartNoAxesCombined,
   Monitor,
   Box,
-  CheckCircle2,
-  Radio,
-  Cloud,
-  Film,
-  Handshake,
-  Upload,
-  Music,
-  Building2,
-  Drama,
   FolderOpen,
   Users,
   Layers,
   Wallet,
-  type LucideIcon,
 } from "lucide-react";
 export const disciplines = [
   {
@@ -188,116 +178,6 @@ export function HomeOverview() {
         </div>
       </section>
     </>
-  );
-}
-// What the studio has lined up this quarter, month by month.
-const timelineData: {
-  month: string;
-  items: {
-    title: string;
-    icon: LucideIcon;
-    done?: boolean;
-    details?: string[];
-  }[];
-}[] = [
-  {
-    month: "September",
-    items: [
-      {
-        title: "DITO Telecomm",
-        icon: Radio,
-        done: true,
-        details: ["1 animation", "8 graphics"],
-      },
-      {
-        title: "Likhaan Animation",
-        icon: Clapperboard,
-        details: ["3 animations", "1 long-form animation"],
-      },
-      { title: "SaaS animation", icon: Cloud },
-      { title: "Web development launch", icon: Rocket },
-      { title: "2D animation project", icon: Film },
-      { title: "ZXENO × Calibre", icon: Handshake },
-      { title: "ZXENO × Caidalum", icon: Handshake },
-    ],
-  },
-  {
-    month: "October",
-    items: [
-      { title: "WAZ showreels posting", icon: Upload },
-      { title: "Aurora Music Festival — Alabang prep", icon: Music },
-    ],
-  },
-  {
-    month: "November",
-    items: [
-      {
-        title: "Aurora Music Festival",
-        icon: Music,
-        details: ["Around Nov 26"],
-      },
-    ],
-  },
-  {
-    month: "December",
-    items: [
-      { title: "Municipality project", icon: Building2 },
-      { title: "University of Perps Theater Play × ZXENO", icon: Drama },
-    ],
-  },
-];
-export function Timeline() {
-  return (
-    <section
-      className="timeline"
-      data-tone="paper"
-      aria-labelledby="timeline-title"
-    >
-      <div className="section-top eyebrow">
-        <span>ZXENO Studio timeline</span>
-        <span>What's ahead this quarter</span>
-      </div>
-      <h2 id="timeline-title">
-        Where the studio
-        <br />
-        <span className="accent">is headed.</span>
-      </h2>
-      <div className="timeline-rail">
-        {timelineData.map((month) => (
-          <div className="timeline-month" key={month.month}>
-            <div className="timeline-marker">
-              <span className="timeline-dot" aria-hidden="true" />
-              <span className="timeline-month-label">{month.month}</span>
-            </div>
-            <ul className="timeline-items">
-              {month.items.map((item) => (
-                <li key={item.title}>
-                  <div className="timeline-item-head">
-                    <span className="timeline-item-title">
-                      <item.icon aria-hidden="true" />
-                      {item.title}
-                    </span>
-                    {item.done && (
-                      <span className="timeline-done">
-                        <CheckCircle2 aria-hidden="true" />
-                        Done
-                      </span>
-                    )}
-                  </div>
-                  {item.details && (
-                    <ul className="timeline-details">
-                      {item.details.map((detail) => (
-                        <li key={detail}>{detail}</li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
 const quickLinks = [
