@@ -4,6 +4,7 @@ import { logout, UNAUTHORIZED_EVENT } from "./lib/api";
 import type { Session } from "./lib/types";
 import { WorkspaceProvider } from "./lib/workspace";
 import { Mark, Shell } from "./Shell";
+import { ParticleField } from "./ui/particles";
 import { PasswordForm } from "./ui/password";
 import { UiProvider } from "./ui/ui";
 
@@ -50,8 +51,9 @@ export default function Admin() {
   if (state.session.mustChangePassword) {
     return (
       <main className="auth">
+        <ParticleField />
         <div className="auth-card">
-          <Mark />
+          <AuthBrand />
           <h1>Set your password</h1>
           <p className="auth-lede">
             Signed in as <strong>{state.session.username}</strong>. Replace the
@@ -125,9 +127,10 @@ function Login({ onSignedIn }: { onSignedIn: (session: Session | null) => void }
 
   return (
     <main className="auth">
+      <ParticleField />
       <form className="auth-card" onSubmit={submit}>
-        <Mark />
-        <h1>Studio admin</h1>
+        <AuthBrand />
+        <h1 className="sr-only">Sign in to ZXENO Studio admin</h1>
         <div className="field">
           <label htmlFor="username">Username</label>
           <input id="username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required autoFocus />
@@ -146,5 +149,16 @@ function Login({ onSignedIn }: { onSignedIn: (session: Session | null) => void }
         </button>
       </form>
     </main>
+  );
+}
+
+function AuthBrand() {
+  return (
+    <div className="auth-brand">
+      <Mark />
+      <span>
+        ZXENO Studio <em>admin</em>
+      </span>
+    </div>
   );
 }
