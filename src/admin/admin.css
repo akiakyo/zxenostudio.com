@@ -3859,3 +3859,12 @@ a.hero-tile:hover {
   background: var(--red);
   vertical-align: 1px;
 }
+
+/* ---------- Chat: loading the log ---------- */
+/* The log is the whole panel, so a left-aligned spinner at the top reads as a
+   stray line. Centre it in the space it is filling. */
+.chat-log .loading {
+  justify-content: center;
+  min-height: 100%;
+  padding: 0;
+}

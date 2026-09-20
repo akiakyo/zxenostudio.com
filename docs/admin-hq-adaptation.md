@@ -37,6 +37,8 @@ This means an executive who creates a project but does not assign themselves wil
 
 Presence is worked out from a heartbeat the whole workspace sends every thirty seconds while its tab is visible, not from chat polling alone. Someone is active when they have interacted in the last five minutes, idle when the heartbeat continues without interaction, and offline once the heartbeat stops for ninety seconds. The dot on an avatar means presence; where someone is working stays a separate badge, because the two answer different questions.
 
+A tab that is not being looked at keeps polling, slowly, so a message can still announce itself; it sends seen=0 so that a background poll never clears the unread badge for a conversation nobody actually read. The chat draft lives in its own component, so a keystroke re-renders one textarea rather than every message on screen.
+
 Notification and message tones are generated in the browser rather than shipped as audio files. Browsers refuse to play sound before someone has interacted with the page, so the audio context is unlocked on the first click or keypress and the tone is simply skipped if it is still locked. The preference is per device and lives in Settings.
 
 ## Permissions and persistence

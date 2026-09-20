@@ -213,3 +213,54 @@ test('presence moves from active to idle to offline',async()=>{
  await db.query(`UPDATE admin_users SET last_seen_at = now() - interval '10 minutes' WHERE username='other.test'`);
  expect(who((await request('team')).data)).toBe('offline');
 });
+test('a tone plays for someone else’s message but not your own',async({page})=>{
+ /* count oscillators instead of listening: the page cannot make real sound here */
+ await page.addInitScript(()=>{
+  (window as any).__tones=0;
+  class FakeContext{
+   state='running';currentTime=0;destination={};
+   resume(){return Promise.resolve();}
+   createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(n:any){return n;}};}
+   createOscillator(){return {type:'',frequency:{value:0},connect(n:any){return n;},start(){(window as any).__tones++;},stop(){}};}
+  }
+  (window as any).AudioContext=FakeContext;
+ });
+ await mount(page,'/chat?channel=wins');
+ await expect(page.getByRole('heading',{name:'#wins'})).toBeVisible();
+ await page.waitForTimeout(600);
+ const tones=()=>page.evaluate(()=>(window as any).__tones as number);
+ const before=await tones();
+ /* your own message: no sound */
+ const box=page.getByLabel('Message #wins');
+ await box.fill('my own message');await box.press('Enter');
+ await expect(page.getByText('my own message')).toBeVisible();
+ await page.waitForTimeout(2500);
+ expect(await tones()).toBe(before);
+ /* somebody else posting into the same room: a sound */
+ await create('chat',{body:'from a teammate',channel:'wins'},'member.test');
+ await expect(page.getByText('from a teammate')).toBeVisible();
+ await page.waitForTimeout(400);
+ expect(await tones()).toBeGreaterThan(before);
+});
+test('a hidden tab still hears a message and keeps its unread badge',async({page})=>{
+ await page.addInitScript(()=>{
+  (window as any).__tones=0;
+  class FakeContext{
+   state='running';currentTime=0;destination={};
+   resume(){return Promise.resolve();}
+   createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(n:any){return n;}};}
+   createOscillator(){return {type:'',frequency:{value:0},connect(n:any){return n;},start(){(window as any).__tones++;},stop(){}};}
+  }
+  (window as any).AudioContext=FakeContext;
+ });
+ await mount(page,'/chat?channel=briefs');
+ await expect(page.getByRole('heading',{name:'#briefs'})).toBeVisible();
+ await page.waitForTimeout(600);
+ const before=await page.evaluate(()=>(window as any).__tones as number);
+ /* the reader looks away */
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));});
+ await create('chat',{body:'posted while they were away',channel:'briefs'},'member.test');
+ await expect.poll(async()=>page.evaluate(()=>(window as any).__tones as number),{timeout:20000}).toBeGreaterThan(before);
+ /* and the badge still says it is unread, because they never actually looked */
+ expect((await request('badges')).data.chat).toBeGreaterThan(0);
+});

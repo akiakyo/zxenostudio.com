@@ -1,7 +1,9 @@
 import {
   Fragment,
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
@@ -56,7 +58,11 @@ const REACTIONS: { key: string; label: string; icon: Icon }[] = [
 ];
 const REACTION = Object.fromEntries(REACTIONS.map((r) => [r.key, r]));
 
-const POLL_MS = 3000;
+const POLL_MS = 1500;
+/* A hidden tab keeps listening, slowly: that is exactly when a message needs
+   to announce itself. Browsers throttle background timers, so this is a floor
+   rather than a promise. */
+const HIDDEN_POLL_MS = 8000;
 /* re-read a few seconds behind the last poll, so a message committed just as
    a poll ran is never missed; merging by id makes the overlap harmless */
 const OVERLAP_MS = 5000;
@@ -131,6 +137,79 @@ function MessageBody({ text }: { text: string }) {
     </p>
   );
 }
+
+type ComposerHandle = { insert: (text: string, onNewLine?: boolean) => void; focus: () => void };
+
+/* The draft lives here rather than in Conversation so that typing re-renders
+   one textarea instead of every message on screen. */
+const Composer = forwardRef<ComposerHandle, {
+  title: string;
+  onSend: (body: string) => Promise<boolean>;
+  onAttach: () => void;
+}>(function Composer({ title, onSend, onAttach }, ref) {
+  const [draft, setDraft] = useState("");
+  const input = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    insert: (text, onNewLine) =>
+      setDraft((current) => (current ? current + (onNewLine ? "\n" : "") : "") + text),
+    focus: () => input.current?.focus(),
+  }), []);
+
+  function grow(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }
+
+  async function submit(event?: FormEvent) {
+    event?.preventDefault();
+    const body = draft.trim();
+    if (!body) return;
+    /* clear the box straight away so the next message can be typed while this
+       one sends; put the text back only if sending fails and nothing new was typed */
+    setDraft("");
+    if (input.current) input.current.style.height = "auto";
+    const sent = await onSend(body);
+    if (!sent) setDraft((current) => current || body);
+    input.current?.focus();
+  }
+
+  return (
+    <form className="chat-composer" onSubmit={submit}>
+      <IconButton icon={Paperclip} label="Attach asset link" onClick={onAttach} />
+      <IconButton
+        icon={SmilePlus}
+        label="Insert emoji"
+        onClick={() => {
+          setDraft((current) => current + " 👍");
+          input.current?.focus();
+        }}
+      />
+      <label htmlFor="chat-input" className="sr-only">Message {title}</label>
+      <textarea
+        id="chat-input"
+        ref={input}
+        rows={1}
+        value={draft}
+        maxLength={4000}
+        placeholder={`Message ${title}`}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          grow(e.target);
+        }}
+        onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+          if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            void submit();
+          }
+        }}
+      />
+      <button type="submit" className="chat-send" aria-label="Send message" disabled={!draft.trim()}>
+        <SendHorizontal size={18} aria-hidden />
+      </button>
+    </form>
+  );
+});
 
 export function ChatPage() {
   const { search } = useLocation();
@@ -329,15 +408,16 @@ function Conversation({
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [draft, setDraft] = useState("");
   const [showMembers, setShowMembers] = useState(false);
   const [unseen, setUnseen] = useState(0);
   const [picker, setPicker] = useState<{ id: string; top: number; left: number } | null>(null);
 
   const listRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const composer = useRef<ComposerHandle>(null);
   const lastNow = useRef<string | null>(null);
   const atBottom = useRef(true);
+  /* every message id on screen, so "is this new" never depends on render timing */
+  const known = useRef<Set<string>>(new Set());
   const scrollMode = useRef<"bottom" | { keepFrom: number } | null>("bottom");
 
   const nearBottom = () => {
@@ -349,20 +429,20 @@ function Conversation({
     lastNow.current = page.now;
     setMembers(page.members);
     if (!page.messages.length) return;
-    setMessages((current) => {
-      const next = merge(current, page.messages);
-      const added = next.filter((m) => !current.some((c) => c.id === m.id));
-      /* a sound only for what someone else just sent */
+    /* what is genuinely new, decided outside the state updater: React may run
+       an updater more than once, so a sound raised in there is missed or
+       doubled */
+    const added = page.messages.filter((m) => !m.deletedAt && !known.current.has(m.id));
+    if (added.length) {
+      for (const message of added) known.current.add(message.id);
       if (added.some((m) => m.author !== session.username)) chime.message();
-      if (added.length) {
-        if (atBottom.current || added.every((m) => m.author === session.username)) {
-          scrollMode.current = "bottom";
-        } else {
-          setUnseen((n) => n + added.length);
-        }
+      if (atBottom.current || added.every((m) => m.author === session.username)) {
+        scrollMode.current = "bottom";
+      } else {
+        setUnseen((n) => n + added.length);
       }
-      return next;
-    });
+    }
+    setMessages((current) => merge(current, page.messages));
   }, [session.username]);
 
   /* first page, then poll for changes while the tab is visible; this also runs
@@ -396,11 +476,14 @@ function Conversation({
     }
 
     async function poll() {
-      if (stopped || document.hidden) return schedule();
+      if (stopped) return schedule();
       if (!lastNow.current) return first();
       try {
         const since = new Date(new Date(lastNow.current).getTime() - OVERLAP_MS).toISOString();
-        const page = await api<ChatPage>(`chat${query({ ...scope, since })}`);
+        /* seen=0 keeps a background poll from clearing the unread badge */
+        const page = await api<ChatPage>(
+          `chat${query({ ...scope, since, seen: document.hidden ? 0 : 1 })}`,
+        );
         if (!stopped) {
           apply(page);
           setError("");
@@ -414,7 +497,7 @@ function Conversation({
     function schedule() {
       if (stopped) return;
       clearTimeout(timer);
-      timer = setTimeout(poll, POLL_MS);
+      timer = setTimeout(poll, document.hidden ? HIDDEN_POLL_MS : POLL_MS);
     }
 
     const wake = () => {
@@ -432,6 +515,10 @@ function Conversation({
       document.removeEventListener("visibilitychange", wake);
     };
   }, [apply, q, pins, project]);
+
+  useEffect(() => {
+    known.current = new Set(messages.map((m) => m.id));
+  }, [messages]);
 
   /* stick to the bottom for new messages; keep place when loading older ones */
   useLayoutEffect(() => {
@@ -459,33 +546,17 @@ function Conversation({
     setMessages((current) => merge(current, page.messages));
   }
 
-  async function send(event?: FormEvent) {
-    event?.preventDefault();
-    const body = draft.trim();
-    if (!body) return;
-    /* clear the box straight away so the next message can be typed while this
-       one sends; put the text back only if sending fails and nothing new was typed */
-    setDraft("");
-    if (inputRef.current) inputRef.current.style.height = "auto";
+  async function send(body: string) {
     const message = await run(() =>
       post<ChatMessage>("chat", project ? { body, project } : { body, channel, recipient }),
     );
-    if (!message) setDraft((current) => current || body);
-    if (message) {
-      scrollMode.current = "bottom";
-      /* the search or pinned filter would hide what was just sent, which reads
-         as the message never arriving; drop the filter and show it instead */
-      if (matchesFilter(message)) setMessages((current) => merge(current, [message]));
-      else onFilterMiss();
-      inputRef.current?.focus();
-    }
-  }
-
-  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      send();
-    }
+    if (!message) return false;
+    scrollMode.current = "bottom";
+    /* the search or pinned filter would hide what was just sent, which reads
+       as the message never arriving; drop the filter and show it instead */
+    if (matchesFilter(message)) setMessages((current) => merge(current, [message]));
+    else onFilterMiss();
+    return true;
   }
 
   async function react(message: ChatMessage, reaction: string) {
@@ -761,28 +832,7 @@ function Conversation({
             </button>
           )}
 
-          <form className="chat-composer" onSubmit={send}>
-            <IconButton icon={Paperclip} label="Attach asset link" onClick={()=>setAttach(true)}/>
-            <IconButton icon={SmilePlus} label="Insert emoji" onClick={()=>{setDraft(d=>d+' 👍');inputRef.current?.focus();}}/>
-            <label htmlFor="chat-input" className="sr-only">Message {title}</label>
-            <textarea
-              id="chat-input"
-              ref={inputRef}
-              rows={1}
-              value={draft}
-              maxLength={4000}
-              placeholder={`Message ${title}`}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
-              }}
-              onKeyDown={onKeyDown}
-            />
-            <button type="submit" className="chat-send" aria-label="Send message" disabled={!draft.trim()}>
-              <SendHorizontal size={18} aria-hidden />
-            </button>
-          </form>
+          <Composer ref={composer} title={title} onSend={send} onAttach={() => setAttach(true)} />
         </div>
 
         {showMembers && (
@@ -821,7 +871,7 @@ function Conversation({
         )}
       </div>
 
-      <Modal open={attach} title="Attach an asset link" onClose={()=>setAttach(false)}>{assets.error&&<ErrorNote message={assets.error} onRetry={assets.reload}/>}<div className="hq-stack">{assets.data?.map(a=><Button key={a.id} onClick={()=>{setDraft(d=>(d?d+'\n':'')+a.name+' '+a.url);setAttach(false);inputRef.current?.focus();}}>{a.name}</Button>)}{assets.data?.length===0&&<p className="muted">Add a file link in the Asset library first.</p>}</div></Modal>
+      <Modal open={attach} title="Attach an asset link" onClose={()=>setAttach(false)}>{assets.error&&<ErrorNote message={assets.error} onRetry={assets.reload}/>}<div className="hq-stack">{assets.data?.map(a=><Button key={a.id} onClick={()=>{composer.current?.insert(`${a.name} ${a.url}`,true);setAttach(false);composer.current?.focus();}}>{a.name}</Button>)}{assets.data?.length===0&&<p className="muted">Add a file link in the Asset library first.</p>}</div></Modal>
       {picker && pickerMessage && (
         <div
           className="reaction-picker"

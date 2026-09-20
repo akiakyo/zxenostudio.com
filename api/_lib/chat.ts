@@ -135,7 +135,7 @@ export async function read(session: Session, search: URLSearchParams) {
   let rows=await query(`${MESSAGE_SELECT} WHERE ${conditions.join(' AND ')} ORDER BY m.id ${since?'ASC':'DESC'} LIMIT ${since?500:PAGE+1}`,p.values);
   const hasMore=!since&&rows.length>PAGE;
   if(!since)rows=rows.slice(0,PAGE).reverse();
-  if(!q&&search.get('pinned')!=='1'&&!before&&rows.length){
+  if(!q&&search.get('pinned')!=='1'&&!before&&search.get('seen')!=='0'&&rows.length){
     const last=rows.reduce((n,r)=>BigInt(r.id)>n?BigInt(r.id):n,0n).toString();
     await query(`INSERT INTO admin_chat_reads(username,conversation,last_message_id) VALUES($1,$2,$3)
       ON CONFLICT(username,conversation) DO UPDATE SET last_message_id=greatest(admin_chat_reads.last_message_id,excluded.last_message_id)`,[session.username,project?`project:${project.id}`:dm?`dm:${dm}`:room,last]);
