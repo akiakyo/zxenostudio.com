@@ -48,6 +48,7 @@ import {
   useUi,
 } from "../ui/ui";
 import { useProjectActions } from "./projectActions";
+import { ProjectFacts } from './hq/ProjectViews';
 
 type Tab = "schedule" | "tasks" | "assets" | "invoices";
 
@@ -114,6 +115,7 @@ export function ProjectDetailPage() {
       {project.description && (
         <div className="project-description"><MultilineText text={project.description} /></div>
       )}
+      <ProjectFacts project={project}/>
 
       <Tabs
         label="Project sections"
@@ -485,4 +487,3 @@ function InvoicesTab({ project, onNew }: { project: Project; onNew: () => void }
     </section>
   );
 }
-

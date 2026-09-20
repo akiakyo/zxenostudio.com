@@ -8,7 +8,7 @@ import { HttpError, requireExecutive } from "./http.js";
 import { USERNAME_PATTERN } from "./users.js";
 
 export type CalendarEvent = {
-  type: "project" | "milestone" | "task" | "invoice";
+  type: "project" | "milestone" | "task" | "invoice" | "event";
   id: string;
   projectId: string | null;
   projectName: string | null;
@@ -69,6 +69,11 @@ export async function events(
        LEFT JOIN admin_projects pr ON pr.id = i.project_id
       WHERE i.status <> 'void' AND i.due_date BETWEEN ${from} AND ${to}
             ${onProject("i.project_id")}
+     UNION ALL
+     SELECT 'event', e.id::text, e.project_id::text, pr.name,
+            e.start_time || ' · ' || e.title, e.date, e.kind, e.date < ${p.add(today())}, NULL, NULL, false
+       FROM admin_events e LEFT JOIN admin_projects pr ON pr.id=e.project_id
+      WHERE e.date BETWEEN ${from} AND ${to} ${onProject('e.project_id')}
      ORDER BY date, type, title`,
     p.values,
   );
@@ -258,7 +263,7 @@ export async function executiveOverview(session: Session) {
   };
 }
 
-const MEMBER_COLUMNS = `u.username, u.name, u.title, u.access, u.phone, u.bio,
+const MEMBER_COLUMNS = `u.username, u.name, u.title, u.access, u.phone, u.bio, u.department, u.work_status,
   (SELECT count(*)::int FROM admin_tasks t
     WHERE t.assignee = u.username AND NOT t.is_private AND t.status <> 'done') AS open_tasks`;
 
@@ -334,7 +339,7 @@ export async function updateMember(
 
 export async function profile(session: Session) {
   const row = await one(
-    `SELECT username, name, title, access, phone, bio FROM admin_users
+    `SELECT username, name, title, access, phone, bio, department, work_status FROM admin_users
       WHERE username = $1`,
     [session.username],
   );
@@ -351,6 +356,8 @@ export async function updateProfile(
       name: { kind: "text", label: "Name", required: true, max: 80 },
       phone: { kind: "text", label: "Phone", max: 40 },
       bio: { kind: "text", label: "Bio", max: 1000 },
+      department: {kind:'text',label:'Department',max:80},
+      workStatus: {kind:'enum',label:'Work status',values:['studio','remote','shoot','off']},
     },
     body,
     "update",

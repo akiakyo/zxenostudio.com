@@ -12,6 +12,7 @@ export type FieldDef = {
     | "text"
     | "textarea"
     | "date"
+    | "time"
     | "number"
     | "money"
     | "email"

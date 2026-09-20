@@ -24,13 +24,17 @@ import {
   ThumbsUp,
   Trash2,
   Users,
+  Pin,
+  Paperclip,
   X,
 } from "lucide-react";
-import { api, del, post, query } from "../lib/api";
+import { api, del, post, query, useApi } from "../lib/api";
 import { todayIso } from "../lib/format";
 import type { ChatMember, ChatMessage, ChatPage } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
-import { Avatar, Badge, ErrorNote, IconButton, Loading, useAction, useUi } from "../ui/ui";
+import { Avatar, Badge, ErrorNote, IconButton, Loading, Button, Modal, SearchInput, useAction, useUi, useDebounced } from "../ui/ui";
+import { navigate, useLocation } from '../lib/router';
+import type { Asset } from '../lib/types';
 
 type Icon = ComponentType<{ size?: number; "aria-hidden"?: boolean; className?: string }>;
 
@@ -52,6 +56,18 @@ const POLL_MS = 3000;
    a poll ran is never missed; merging by id makes the overlap harmless */
 const OVERLAP_MS = 5000;
 const GROUP_MS = 5 * 60 * 1000;
+/* Must match CHANNELS in api/_lib/chat.ts. */
+const CHANNELS = [
+  "general",
+  "wins",
+  "random",
+  "briefs",
+  "in-production",
+  "reviews",
+  "design",
+  "production",
+  "dev",
+];
 
 function merge(current: ChatMessage[], incoming: ChatMessage[]) {
   const byId = new Map(current.map((m) => [m.id, m]));
@@ -108,6 +124,28 @@ function MessageBody({ text }: { text: string }) {
 }
 
 export function ChatPage() {
+  const {search}=useLocation();const {team}=useWorkspace();
+  const channel=search.get('channel')||'general',recipient=search.get('dm')||'';
+  const conversations=useApi<{conversation:string;unread:number}[]>(`chat-conversations?channel=${channel}&recipient=${encodeURIComponent(recipient)}`);
+  useEffect(()=>{const t=setInterval(()=>{if(!document.hidden)conversations.reload();},10000);return()=>clearInterval(t);},[conversations.reload]);
+  const unread=(c:string)=>{const count=conversations.data?.find(r=>r.conversation===c)?.unread;return count?` (${count} unread)`:'';};
+  const [text,setText]=useState(''),[pins,setPins]=useState(false);const q=useDebounced(text);
+  /* what to do when a message would be hidden by the filter that is on */
+  const clearFilters=useCallback(()=>{setText('');setPins(false);},[]);
+  return <><div className="toolbar hq-chat-toolbar"><label>Conversation <select aria-label="Conversation" value={recipient?`dm:${recipient}`:channel} onChange={e=>{setText('');setPins(false);const v=e.target.value;navigate(v.startsWith('dm:')?`/chat?dm=${encodeURIComponent(v.slice(3))}`:`/chat?channel=${v}`);}}>
+   <optgroup label="Channels">{CHANNELS.map(c=><option key={c} value={c}>#{c}{unread(c)}</option>)}</optgroup><optgroup label="Direct messages">{team.map(m=><option key={m.username} value={`dm:${m.username}`}>{m.name}{unread(`dm:${m.username}`)}</option>)}</optgroup>
+  </select></label><SearchInput value={text} onChange={setText} placeholder="Search messages"/><Button size="sm" icon={Pin} aria-pressed={pins} onClick={()=>setPins(!pins)}>{pins?'All messages':'Pinned messages'}</Button></div>
+  {/* keyed on the conversation alone: typing in the search box or turning the pinned
+     filter on changes what is shown, it must never throw away the loaded log,
+     the unsent draft or the scroll position */}
+  <Conversation key={`${channel}:${recipient}`} channel={channel} recipient={recipient} q={q} pins={pins} onFilterMiss={clearFilters}/></>;
+}
+
+function Conversation({channel,recipient,q,pins,onFilterMiss}:{channel:string;recipient:string;q:string;pins:boolean;onFilterMiss:()=>void}) {
+  const scope={channel,recipient,q,pinned:pins?1:null};
+  const matchesFilter=(message:ChatMessage)=>
+    (!q||message.body.toLowerCase().includes(q.toLowerCase()))&&(!pins||message.pinned);
+  const [attach,setAttach]=useState(false);const assets=useApi<Asset[]>(attach?'assets':null);
   const { session, isExecutive, memberName } = useWorkspace();
   const run = useAction();
   const { confirm } = useUi();
@@ -150,32 +188,41 @@ export function ChatPage() {
     });
   }, [session.username]);
 
-  /* first page, then poll for changes while the tab is visible */
+  /* first page, then poll for changes while the tab is visible; this also runs
+     again when the search text or the pinned filter changes, because those ask
+     the server for a different slice of the same conversation */
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let stopped = false;
+    lastNow.current = null;
 
     async function first() {
       try {
-        const page = await api<ChatPage>("chat");
+        const page = await api<ChatPage>(`chat${query(scope)}`);
         if (stopped) return;
+        lastNow.current = page.now;
         setHasMore(page.hasMore);
+        setMembers(page.members);
         scrollMode.current = "bottom";
-        apply(page);
+        /* a whole page, not an update: replace what is on screen */
+        setMessages(page.messages);
         setError("");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load the chat");
+        if (!stopped) setError(e instanceof Error ? e.message : "Could not load the chat");
       } finally {
-        setLoading(false);
-        schedule();
+        if (!stopped) {
+          setLoading(false);
+          schedule();
+        }
       }
     }
 
     async function poll() {
-      if (stopped || document.hidden || !lastNow.current) return schedule();
+      if (stopped || document.hidden) return schedule();
+      if (!lastNow.current) return first();
       try {
         const since = new Date(new Date(lastNow.current).getTime() - OVERLAP_MS).toISOString();
-        const page = await api<ChatPage>(`chat${query({ since })}`);
+        const page = await api<ChatPage>(`chat${query({ ...scope, since })}`);
         if (!stopped) {
           apply(page);
           setError("");
@@ -206,7 +253,7 @@ export function ChatPage() {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", wake);
     };
-  }, [apply]);
+  }, [apply, q, pins]);
 
   /* stick to the bottom for new messages; keep place when loading older ones */
   useLayoutEffect(() => {
@@ -227,7 +274,7 @@ export function ChatPage() {
     const el = listRef.current;
     const first = messages[0];
     if (!first || !el) return;
-    const page = await run(() => api<ChatPage>(`chat${query({ before: first.id })}`));
+    const page = await run(() => api<ChatPage>(`chat${query({ ...scope,before: first.id })}`));
     if (!page) return;
     scrollMode.current = { keepFrom: el.scrollHeight - el.scrollTop };
     setHasMore(page.hasMore);
@@ -242,11 +289,14 @@ export function ChatPage() {
        one sends; put the text back only if sending fails and nothing new was typed */
     setDraft("");
     if (inputRef.current) inputRef.current.style.height = "auto";
-    const message = await run(() => post<ChatMessage>("chat", { body }));
+    const message = await run(() => post<ChatMessage>("chat", { body,channel,recipient }));
     if (!message) setDraft((current) => current || body);
     if (message) {
       scrollMode.current = "bottom";
-      setMessages((current) => merge(current, [message]));
+      /* the search or pinned filter would hide what was just sent, which reads
+         as the message never arriving; drop the filter and show it instead */
+      if (matchesFilter(message)) setMessages((current) => merge(current, [message]));
+      else onFilterMiss();
       inputRef.current?.focus();
     }
   }
@@ -280,6 +330,18 @@ export function ChatPage() {
     );
     const updated = await run(() => post<ChatMessage>("chat-reactions", { messageId: message.id, reaction }));
     if (updated) setMessages((current) => merge(current, [updated]));
+  }
+
+  async function pin(message: ChatMessage) {
+    const updated = await run(() =>
+      post<ChatMessage>("chat-pins", { messageId: message.id, pinned: !message.pinned }),
+    );
+    if (!updated) return;
+    setMessages((current) =>
+      pins && !updated.pinned
+        ? current.filter((m) => m.id !== updated.id)
+        : merge(current, [updated]),
+    );
   }
 
   async function remove(message: ChatMessage) {
@@ -327,7 +389,7 @@ export function ChatPage() {
     <div className={`chat ${showMembers ? "with-members" : ""}`}>
       <header className="chat-head">
         <div className="chat-title">
-          <h1>Studio chat</h1>
+          <h1>{recipient?memberName(recipient):channel==='general'?'Studio chat':`#${channel}`}</h1>
           <span>
             {members.length} members · <span className="online-count">{online.length} online</span>
           </span>
@@ -377,7 +439,7 @@ export function ChatPage() {
               <div className="chat-empty">
                 <span className="empty-icon"><MessageCircle size={22} aria-hidden /></span>
                 <strong>Say hello to the studio</strong>
-                <p>Everyone on the team, members and executives, can read and reply here.</p>
+                <p>{recipient?'Only you and this person can read this conversation.':q||pins?'No messages match this view.':'Everyone on the team can read and reply here.'}</p>
               </div>
             )}
             {messages.map((message, index) => {
@@ -453,6 +515,11 @@ export function ChatPage() {
                     </div>
                     <div className="chat-actions">
                       <IconButton
+                        icon={Pin}
+                        label={message.pinned ? "Unpin message" : "Pin message"}
+                        onClick={() => pin(message)}
+                      />
+                      <IconButton
                         icon={SmilePlus}
                         label="Add reaction"
                         className="chat-react-btn"
@@ -483,6 +550,8 @@ export function ChatPage() {
           )}
 
           <form className="chat-composer" onSubmit={send}>
+            <IconButton icon={Paperclip} label="Attach asset link" onClick={()=>setAttach(true)}/>
+            <IconButton icon={SmilePlus} label="Insert emoji" onClick={()=>{setDraft(d=>d+' 👍');inputRef.current?.focus();}}/>
             <label htmlFor="chat-input" className="sr-only">Message the studio</label>
             <textarea
               id="chat-input"
@@ -541,6 +610,7 @@ export function ChatPage() {
         )}
       </div>
 
+      <Modal open={attach} title="Attach an asset link" onClose={()=>setAttach(false)}>{assets.error&&<ErrorNote message={assets.error} onRetry={assets.reload}/>}<div className="hq-stack">{assets.data?.map(a=><Button key={a.id} onClick={()=>{setDraft(d=>(d?d+'\n':'')+a.name+' '+a.url);setAttach(false);inputRef.current?.focus();}}>{a.name}</Button>)}{assets.data?.length===0&&<p className="muted">Add a file link in the Asset library first.</p>}</div></Modal>
       {picker && pickerMessage && (
         <div
           className="reaction-picker"

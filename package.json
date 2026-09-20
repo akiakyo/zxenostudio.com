@@ -8,6 +8,8 @@
     "build": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json && vite build && node scripts/build-pages.cjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "playwright test",
+    "test:admin": "playwright test tests/admin-hq.spec.ts --workers=1",
+    "migrate-admin": "node --env-file=.env.local scripts/migrate-admin.ts",
     "seed-admins": "node --env-file=.env.local scripts/seed-admins.ts"
   },
   "keywords": [],

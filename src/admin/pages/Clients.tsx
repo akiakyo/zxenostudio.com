@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { Building2, Mail, Pencil, Phone, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Building2, Mail, Pencil, Phone, Plus, Trash2, Eye } from "lucide-react";
 import { del, query, useApi } from "../lib/api";
 import type { Client } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
 import { useClientEditor } from "../ui/editors";
+import { Pipeline } from './hq/Pipeline';
+import { ClientDetail } from './hq/ClientDetail';
+import { useLocation } from '../lib/router';
 import {
   Button,
   EmptyState,
@@ -16,11 +19,15 @@ import {
   useAction,
   useDebounced,
   useUi,
+  Tabs,
 } from "../ui/ui";
 
 export function ClientsPage() {
+  const {search}=useLocation();const [selected,setSelected]=useState<string|null>(search.get('id'));
+  const selectedId=search.get('id');useEffect(()=>setSelected(selectedId),[selectedId]);
   const { isExecutive, reloadLookups } = useWorkspace();
   const [text, setText] = useState("");
+  const [tab,setTab]=useState('clients');
   const q = useDebounced(text);
   const { data, error, loading, reload } = useApi<Client[]>(`clients${query({ q })}`);
   const editor = useClientEditor(() => reload());
@@ -51,7 +58,8 @@ export function ClientsPage() {
         description="Everyone the studio works for, with how to reach them."
         actions={<Button variant="primary" icon={Plus} onClick={() => editor.openNew()}>Add client</Button>}
       />
-      <FilterBar>
+      <Tabs label="Clients view" value={tab} onChange={setTab} tabs={[{value:'clients',label:'Clients'},{value:'pipeline',label:'Pipeline'}]} />
+      {tab==='pipeline'?<Pipeline/>:<><FilterBar>
         <SearchInput value={text} onChange={setText} placeholder="Search name, company or email" />
       </FilterBar>
       {error && <ErrorNote message={error} onRetry={reload} />}
@@ -105,6 +113,7 @@ export function ClientsPage() {
                   <td className="cell-actions">
                     <Menu
                       items={[
+                        {label:'Client details',icon:Eye,onSelect:()=>setSelected(client.id)},
                         { label: "Edit", icon: Pencil, onSelect: () => editor.openEdit(client) },
                         isExecutive && { label: "Delete", icon: Trash2, danger: true, onSelect: () => remove(client) },
                       ]}
@@ -116,7 +125,7 @@ export function ClientsPage() {
           </table>
         </div>
       )}
-      {editor.element}
+      </>}{editor.element}{data?.find(c=>c.id===selected)&&<ClientDetail client={data.find(c=>c.id===selected)!} onClose={()=>setSelected(null)}/>}
     </div>
   );
 }

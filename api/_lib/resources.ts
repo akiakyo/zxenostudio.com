@@ -7,6 +7,7 @@ import type { Session } from "./auth.js";
 import { isUuid, type Resource } from "./crud.js";
 import { one, Params, today, type Row } from "./db.js";
 import { HttpError, isExecutive } from "./http.js";
+import { HQ_RESOURCES } from './hq-resources.js';
 
 const ownerOrExecutive = (session: Session, row: Row) =>
   row.createdBy === session.username || isExecutive(session);
@@ -35,6 +36,12 @@ const PROJECT_STATUSES = [
   "completed",
 ] as const;
 
+function projectDates(_s: Session, values: Map<string,unknown>, row:Row={}) {
+ const start=values.has('start_date')?values.get('start_date'):row.startDate;
+ const due=values.has('due_date')?values.get('due_date'):row.dueDate;
+ if(start&&due&&String(start)>String(due))throw new HttpError(400,'Due date cannot be before the start date');
+}
+
 export const clients: Resource = {
   table: "admin_clients",
   entity: "client",
@@ -44,6 +51,11 @@ export const clients: Resource = {
     company: { kind: "text", label: "Company", max: 120 },
     phone: { kind: "text", label: "Phone", max: 40 },
     notes: { kind: "longtext", label: "Notes" },
+    status: { kind: 'enum', label: 'Status', values: ['active','onboarding','paused','in_house'] },
+    owner: { kind: 'user', label: 'Account owner' },
+    agreement: { kind: 'text', label: 'Agreement' },
+    industry: { kind: 'text', label: 'Industry' },
+    palette: { kind: 'text', label: 'Brand colours' },
   },
   select: `t.*, ${authorName},
     (SELECT count(*)::int FROM admin_projects p WHERE p.client_id = t.id) AS project_count`,
@@ -55,6 +67,8 @@ export const clients: Resource = {
 };
 
 export const projects: Resource = {
+  prepareCreate:projectDates,
+  prepareUpdate:projectDates,
   table: "admin_projects",
   entity: "project",
   fields: {
@@ -63,11 +77,16 @@ export const projects: Resource = {
     description: { kind: "longtext", label: "Description" },
     status: { kind: "enum", label: "Status", values: PROJECT_STATUSES },
     progress: { kind: "int", label: "Progress", min: 0, max: 100 },
+    lead: { kind: 'user', label: 'Project lead' },
+    team: { kind: 'users', label: 'Project team' },
+    budget: { kind: 'money', label: 'Budget' },
     startDate: { kind: "date", label: "Start date" },
     dueDate: { kind: "date", label: "Due date" },
     archived: { kind: "stamp", label: "Archived", column: "archived_at" },
   },
-  select: `t.*, t.archived_at IS NOT NULL AS archived, c.name AS client_name,
+  select: `t.*, t.budget::float8 AS budget,
+    (SELECT coalesce(sum(e.amount),0)::float8 FROM admin_expenses e WHERE e.project_id=t.id) AS spent,
+    t.archived_at IS NOT NULL AS archived, c.name AS client_name,
     ${authorName},
     (SELECT count(*)::int FROM admin_tasks k
       WHERE k.project_id = t.id AND NOT k.is_private) AS task_count,
@@ -299,6 +318,8 @@ export const assets: Resource = {
     projectId: { kind: "uuid", label: "Project" },
     description: { kind: "longtext", label: "Description" },
     tags: { kind: "text", label: "Tags", max: 200 },
+    folder: { kind: 'text', label: 'Folder' },
+    sizeLabel: { kind: 'text', label: 'File size' },
   },
   select: `t.*, p.name AS project_name, ${authorName}`,
   joins: `LEFT JOIN admin_projects p ON p.id = t.project_id ${author}`,
@@ -463,6 +484,7 @@ export const briefs: Resource = {
 };
 
 export const RESOURCES: Record<string, Resource> = {
+  ...HQ_RESOURCES,
   clients,
   projects,
   milestones,

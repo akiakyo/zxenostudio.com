@@ -46,6 +46,7 @@ export function SettingsPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
+  const [department,setDepartment]=useState(''),[workStatus,setWorkStatus]=useState('studio');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [theme, setTheme] = useState<Theme>(readTheme);
@@ -55,6 +56,7 @@ export function SettingsPage() {
       setName(data.name);
       setPhone(data.phone);
       setBio(data.bio);
+      setDepartment(data.department);setWorkStatus(data.workStatus);
     }
   }, [data]);
 
@@ -63,7 +65,7 @@ export function SettingsPage() {
     setSaving(true);
     setFormError("");
     try {
-      const updated = await patch<Member>("profile", { name, phone, bio });
+      const updated = await patch<Member>("profile", { name, phone, bio, department, workStatus });
       updateSession({ name: updated.name });
       reloadLookups();
       toast("Profile saved");
@@ -93,6 +95,8 @@ export function SettingsPage() {
               <label htmlFor="profile-name">Name</label>
               <input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required autoComplete="name" />
             </div>
+            <div className="field"><label htmlFor="profile-department">Department</label><input id="profile-department" value={department} onChange={e=>setDepartment(e.target.value)} maxLength={80}/></div>
+            <div className="field"><label htmlFor="profile-status">Work status</label><select id="profile-status" value={workStatus} onChange={e=>setWorkStatus(e.target.value)}><option value="studio">In studio</option><option value="remote">Remote</option><option value="shoot">On shoot</option><option value="off">Off</option></select></div>
             <div className="field">
               <label htmlFor="profile-phone">Phone</label>
               <input id="profile-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} autoComplete="tel" placeholder="+63 917 000 0000" />

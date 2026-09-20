@@ -59,6 +59,7 @@ export type Resource = {
   logged?: (row: Row) => boolean;
   decorate?: (row: Row) => Row;
   limit?: number;
+  optimistic?: boolean;
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -346,11 +347,13 @@ export async function update(
   const sets = [...values].map(
     ([column, value]) => `${column} = ${p.add(value)}`,
   );
-  await query(
+  const updated = await query(
     `UPDATE ${resource.table} SET ${sets.join(", ")}, updated_at = now()
-     WHERE id = ${p.add(id)}`,
+     ${resource.optimistic ? ', lock_version = lock_version + 1' : ''}
+     WHERE id = ${p.add(id)} ${resource.optimistic ? `AND lock_version = ${p.add(before.lockVersion)}` : ''} RETURNING id`,
     p.values,
   );
+  if (!updated.length) throw new HttpError(409, 'This record changed. Refresh before trying again.');
   const after = (await fetchRow(resource, session, id))!;
   if (resource.logged?.(after) ?? true) {
     await logActivity(

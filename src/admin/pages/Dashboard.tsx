@@ -42,6 +42,7 @@ import {
   StatusBadge,
 } from "../ui/ui";
 import { ActivityLine } from "./Activity";
+import { DashboardSummary } from './hq/DashboardSummary';
 
 type Dashboard = {
   today: string;
@@ -280,6 +281,7 @@ export function DashboardPage() {
         </>
       )}
 
+      <DashboardSummary/>
       {projectEditor.element}
       {updateEditor.element}
       {noteEditor.element}

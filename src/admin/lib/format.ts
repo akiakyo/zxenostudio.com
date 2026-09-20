@@ -104,6 +104,11 @@ export function initials(name: string, fallback = "?"): string {
 }
 
 export const LABELS: Record<string, string> = {
+  studio:'In studio',remote:'Remote',off:'Off',
+  pending:'Pending', revision:'Needs revision', declined:'Declined', cancelled:'Cancelled',
+  event:'Event', meeting:'Meeting', shoot:'Shoot', internal:'Internal', deadline:'Deadline',
+  lead:'Lead', discovery:'Discovery', proposal:'Proposal', negotiation:'Negotiation', won:'Won', lost:'Lost',
+  onboarding:'Onboarding', paused:'Paused', in_house:'In-house',
   planning: "Planning",
   active: "Active",
   on_hold: "On hold",

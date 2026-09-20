@@ -10,6 +10,8 @@ export type Session = {
 };
 
 export type Member = {
+  department: string;
+  workStatus: string;
   username: string;
   name: string;
   title: string;
@@ -27,6 +29,11 @@ type Authored = {
 };
 
 export type Client = Authored & {
+  status: string;
+  owner: string | null;
+  agreement: string;
+  industry: string;
+  palette: string;
   id: string;
   name: string;
   email: string;
@@ -44,6 +51,10 @@ export type ProjectStatus =
   | "completed";
 
 export type Project = Authored & {
+  lead: string | null;
+  team: string[];
+  budget: number | null;
+  spent: number;
   id: string;
   name: string;
   clientId: string | null;
@@ -119,6 +130,8 @@ export type AssetKind =
   | "other";
 
 export type Asset = Authored & {
+  folder: string;
+  sizeLabel: string;
   id: string;
   name: string;
   url: string;
@@ -209,7 +222,7 @@ export type ActivityItem = {
   createdAt: string;
 };
 
-export type EventType = "project" | "milestone" | "task" | "invoice";
+export type EventType = "project" | "milestone" | "task" | "invoice" | "event";
 
 export type CalendarEvent = {
   type: EventType;
@@ -228,6 +241,9 @@ export type CalendarEvent = {
 export type ChatReaction = { reaction: string; users: string[] };
 
 export type ChatMessage = {
+  channel: string;
+  recipient: string | null;
+  pinned: boolean;
   id: string;
   author: string;
   authorName: string;

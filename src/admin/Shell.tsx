@@ -51,6 +51,11 @@ import { RolesPage } from "./pages/Roles";
 import { SettingsPage } from "./pages/Settings";
 import { TaskBoardPage } from "./pages/TaskBoard";
 import { TeamPage } from "./pages/Team";
+import { ApprovalsPage } from './pages/hq/Approvals';
+import { FinancePage } from './pages/hq/Finance';
+import { LeavePage, WorkloadPage } from './pages/hq/People';
+import { HandbookPage } from './pages/hq/Handbook';
+import { WorkspaceTools } from './pages/hq/WorkspaceTools';
 
 type NavItem = {
   path: string;
@@ -94,6 +99,8 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { path: "/briefs", label: "Creative briefs", icon: FileText, page: BriefsPage },
       { path: "/feedback", label: "Feedback loop", icon: MessagesSquare, page: FeedbackPage },
+      { path: '/approvals', label: 'Approvals', icon: ShieldCheck, page: ApprovalsPage },
+      { path: '/handbook', label: 'Handbook', icon: FileText, page: HandbookPage },
       { path: "/meeting-notes", label: "Meeting notes", icon: NotebookPen, page: MeetingNotesPage },
       { path: "/assets", label: "Asset library", icon: Images, page: AssetsPage },
     ],
@@ -103,12 +110,15 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { path: "/clients", label: "Clients", icon: Building2, page: ClientsPage },
       { path: "/invoices", label: "Invoices", icon: Receipt, page: InvoicesPage },
+      { path: '/finance', label: 'Finance', icon: Receipt, page: FinancePage },
     ],
   },
   {
     group: "Team",
     items: [
       { path: "/team", label: "Team directory", icon: Users, page: TeamPage },
+      { path: '/workload', label: 'Workload', icon: Columns3, page: WorkloadPage },
+      { path: '/leave', label: 'Leave', icon: CalendarDays, page: LeavePage },
       { path: "/executives", label: "Executives", icon: Crown, page: ExecutivesPage, executiveOnly: true },
       { path: "/roles", label: "Roles & permissions", icon: ShieldCheck, page: RolesPage },
     ],
@@ -241,6 +251,7 @@ export function Shell() {
       />
 
       <main id="main" className="content">
+        <WorkspaceTools />
         {Page ? (
           <Page key={path} />
         ) : (

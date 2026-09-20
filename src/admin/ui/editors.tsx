@@ -67,6 +67,9 @@ const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1);
 export const PROJECT_FIELDS: FieldDef[] = [
   { name: "name", label: "Project name", type: "text", required: true, wide: true },
   { name: "clientId", label: "Client", type: "client" },
+  { name: 'lead', label: 'Project lead', type: 'member' },
+  { name: 'team', label: 'Project team', type: 'members' },
+  { name: 'budget', label: 'Budget (PHP)', type: 'money' },
   {
     name: "status",
     label: "Status",
@@ -170,6 +173,11 @@ export function useInvoiceEditor(onSaved?: (row: any, created: boolean) => void)
 export const CLIENT_FIELDS: FieldDef[] = [
   { name: "name", label: "Client name", type: "text", required: true },
   { name: "company", label: "Company", type: "text" },
+  {name:'status',label:'Status',type:'select',noEmpty:true,options:options(['active','onboarding','paused','in_house'])},
+  {name:'owner',label:'Account owner',type:'member'},
+  {name:'industry',label:'Industry',type:'text'},
+  {name:'agreement',label:'Agreement',type:'text'},
+  {name:'palette',label:'Brand colours',type:'text',placeholder:'#55C505, #0E1F08'},
   { name: "email", label: "Email", type: "email" },
   { name: "phone", label: "Phone number", type: "tel" },
   { name: "notes", label: "Notes", type: "textarea" },
@@ -225,6 +233,8 @@ export function useStatusUpdateEditor(onSaved?: (row: any, created: boolean) => 
 
 export const ASSET_FIELDS: FieldDef[] = [
   { name: "name", label: "Name", type: "text", required: true, wide: true },
+  {name:'folder',label:'Folder',type:'text'},
+  {name:'sizeLabel',label:'File size',type:'text',placeholder:'e.g. 12 MB'},
   {
     name: "url",
     label: "Link",

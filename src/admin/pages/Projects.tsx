@@ -21,10 +21,11 @@ import {
   useDebounced,
 } from "../ui/ui";
 import { useProjectActions } from "./projectActions";
+import { ProjectBoard, ProjectTimeline } from './hq/ProjectViews';
 
 export function ProjectsPage() {
   const { search } = useLocation();
-  const view = search.get("view") === "calendar" ? "calendar" : "list";
+  const view = ['calendar','board','timeline'].includes(search.get('view')||'')?search.get('view')!:'list';
   const [status, setStatus] = useState("");
   const [text, setText] = useState("");
   const q = useDebounced(text);
@@ -51,10 +52,12 @@ export function ProjectsPage() {
           onChange={(value) => setSearchParam("view", value === "list" ? null : value)}
           tabs={[
             { value: "list", label: "List" },
+            { value: 'board', label: 'Board' },
+            { value: 'timeline', label: 'Timeline' },
             { value: "calendar", label: "Due date calendar" },
           ]}
         />
-        {view === "list" && (
+        {view !== "calendar" && (
           <FilterBar>
             <SearchInput value={text} onChange={setText} placeholder="Search projects or clients" />
             <SelectFilter
@@ -87,7 +90,7 @@ export function ProjectsPage() {
               }
             />
           )}
-          {data && data.length > 0 && (
+          {data && data.length > 0 && (view==='board'?<ProjectBoard projects={data} reload={reload}/>:view==='timeline'?<ProjectTimeline projects={data}/>: (
             <div className="table-wrap">
               <table className="table projects-table">
                 <thead>
@@ -139,11 +142,10 @@ export function ProjectsPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          ))}
         </>
       )}
       {actions.elements}
     </div>
   );
 }
-

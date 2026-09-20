@@ -61,6 +61,7 @@ export function IconButton({
 export type Tone = "neutral" | "green" | "blue" | "amber" | "red" | "violet";
 
 const TONES: Record<string, Tone> = {
+  pending:'amber', revision:'amber', declined:'red', cancelled:'neutral', won:'green', lost:'red',
   planning: "violet",
   active: "green",
   on_hold: "amber",

@@ -3163,3 +3163,26 @@ a.stat:hover {
     padding-right: 10px;
   }
 }
+
+/* HQ feature extensions reuse the existing workspace palette and components. */
+.hq-tools { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:12px 24px 0; flex-wrap:wrap; }
+.hq-tools kbd { font:inherit; font-size:11px; color:var(--text-3); }
+.hq-stack { display:flex; flex-direction:column; gap:16px; }
+.hq-pad { padding:18px; }
+.hq-search-results { display:flex; flex-direction:column; gap:4px; margin-top:16px; max-height:55vh; overflow:auto; }
+.hq-search-results .nav-link { justify-content:space-between; text-align:left; }
+.hq-preview { position:relative; width:fit-content; max-width:100%; }
+.hq-image-target { display:block; padding:0; border:0; background:none; max-width:100%; }
+.hq-image-target:disabled { opacity:1; }
+.hq-image-target img { display:block; max-width:100%; max-height:55vh; }
+.hq-pin { position:absolute; transform:translate(-50%,-50%); border-radius:50%; background:var(--accent); color:var(--accent-ink); width:26px; height:26px; display:grid; place-items:center; font-weight:700; pointer-events:none; }
+.hq-media { display:block; max-width:100%; max-height:60vh; object-fit:contain; }
+.hq-week { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+.hq-week .event-chip { white-space:normal; text-align:left; }
+.hq-timeline { min-width:220px; height:24px; background:var(--card-2); border-radius:4px; overflow:hidden; }
+.hq-timeline>span { display:block; height:100%; background:var(--accent); border-radius:4px; }
+.hq-project-facts { padding:12px 0 20px; gap:12px 24px; color:var(--text-2); flex-wrap:wrap; }
+.hq-chat-toolbar { padding:16px 24px 0; }
+.hq-chat-toolbar + .chat { height:calc(100dvh - 160px); min-height:400px; }
+.event-event { --event-color:var(--violet); }
+@media(max-width:768px) { .hq-tools { padding:12px 16px 0; justify-content:flex-start; } .hq-chat-toolbar { padding:12px 16px 0; } .hq-chat-toolbar + .chat { height:calc(100dvh - 230px); } .hq-week { grid-template-columns:1fr; } }

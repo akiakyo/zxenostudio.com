@@ -84,7 +84,7 @@ export function schemaStatements(): string[] {
   const schema = readFileSync(
     new URL("../db/schema.sql", import.meta.url),
     "utf8",
-  );
+  ) + '\n' + readFileSync(new URL('../db/migrations/20260920-studio-hq.sql', import.meta.url), 'utf8');
   return schema
     .replace(/--.*$/gm, "")
     .split(";")

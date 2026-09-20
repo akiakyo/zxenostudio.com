@@ -17,6 +17,14 @@ import {
 
 /* Mirrors the checks in api/_lib/resources.ts and api/_lib/views.ts. */
 const PERMISSIONS: { area: string; member: string | boolean; executive: string | boolean }[] = [
+  {area:'Review approvals',member:'Assigned reviewer only',executive:true},
+  {area:'Submit and resubmit approvals',member:'Create; edit their own',executive:true},
+  {area:'Manage expenses and capacity plans',member:false,executive:true},
+  {area:'View finance, workload and handbook',member:true,executive:true},
+  {area:'Edit handbook documents',member:false,executive:true},
+  {area:'Leave requests',member:'Create, view and cancel their own pending requests',executive:'Review others; cannot approve their own'},
+  {area:'Direct messages',member:'Participants only',executive:'Participants only'},
+  {area:'Events and sales pipeline',member:'Create and edit; delete their own',executive:true},
   { area: "View the dashboard, calendar, deadlines and activity", member: true, executive: true },
   { area: "Create and edit projects, milestones and tasks", member: true, executive: true },
   { area: "Archive and restore projects", member: true, executive: true },

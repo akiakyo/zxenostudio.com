@@ -16,10 +16,11 @@ import { navigate } from "../lib/router";
 import type { CalendarEvent, EventType } from "../lib/types";
 import { Button, ErrorNote, IconButton } from "./ui";
 
-const ALL_TYPES: EventType[] = ["milestone", "task", "invoice", "project"];
+const ALL_TYPES: EventType[] = ["milestone", "task", "invoice", "project", "event"];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function eventHref(event: CalendarEvent): string {
+  if (event.type === 'event') return `/calendar?view=agenda&id=${event.id}`;
   if (event.type === "invoice") return `/invoices?id=${event.id}`;
   if (event.type === "task" && event.isPrivate) return "/tasks/private";
   if (event.projectId) {

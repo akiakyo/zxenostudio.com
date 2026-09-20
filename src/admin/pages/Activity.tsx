@@ -23,6 +23,10 @@ import {
 } from "../ui/ui";
 
 const ENTITY_LINKS: Record<string, (id: string) => string> = {
+  approval:id=>`/approvals?id=${id}`,
+  event:id=>`/calendar?view=agenda&id=${id}`,
+  document:id=>`/handbook?id=${id}`,
+  expense:()=>'/finance',deal:()=>'/clients',capacity:()=>'/workload',
   project: (id) => `/projects/${id}`,
   task: () => "/tasks/overview",
   milestone: () => "/calendar",
