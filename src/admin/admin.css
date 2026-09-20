@@ -1417,6 +1417,10 @@ a.stat:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  /* panels size to their contents: a short list should not be stretched to
+     match a long one beside it */
+  align-items: start;
+  margin-bottom: 8px;
 }
 .dash-grid .panel + .panel {
   margin-top: 0;
@@ -3262,6 +3266,9 @@ select.board-card-move {
   bottom: -1px;
   box-shadow: 0 0 0 2px var(--card);
 }
+.presence-dot.is-active { background: var(--accent); }
+.presence-dot.is-idle { background: var(--amber); }
+.presence-dot.is-offline { background: var(--text-3); }
 .presence-dot.is-studio { background: var(--accent); }
 .presence-dot.is-remote { background: var(--blue); }
 .presence-dot.is-shoot { background: var(--amber); }
@@ -3837,4 +3844,18 @@ a.hero-tile:hover {
   .stat-strip {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* ---------- Unread dot ---------- */
+.btn.has-unread {
+  position: relative;
+}
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--red);
+  vertical-align: 1px;
 }

@@ -105,6 +105,7 @@ test('admin keeps its shell and creates events through the existing modal',async
  await expect(page.locator('.sidebar')).toBeVisible();expect(errors).toEqual([]);
 });
 test('new pages render on desktop and mobile and search is keyboard accessible',async({page})=>{
+ test.setTimeout(120000); // eight full page loads against an in-process database
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await mount(page,'/approvals');
  for(const [path,title] of [['/approvals','Approvals'],['/finance','Finance'],['/workload','Workload'],['/leave','Leave'],['/handbook','Handbook'],['/projects?view=board','Projects'],['/clients','Clients'],['/chat?channel=design','\u0023design']]){
   await page.goto(path);await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
@@ -154,8 +155,11 @@ test('sidebar counts follow what each person can act on',async()=>{
 test('presence shows on the team directory and the dashboard',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await request('profile','PATCH',{workStatus:'shoot'},'member.test');
+ await request('presence','POST',{active:true},'member.test');
  await mount(page,'/team');
- await expect(page.locator('.presence-dot.is-shoot').first()).toBeVisible();
+ /* the dot says whether they are here; the badge says where they are working */
+ await expect(page.locator('.presence-dot.is-active').first()).toBeVisible();
+ await expect(page.getByText('On shoot',{exact:true}).first()).toBeVisible();
  await page.goto('/');
  await expect(page.getByRole('heading',{name:"Who's in"})).toBeVisible();
  await expect(page.locator('.presence-grid .presence-person').first()).toBeVisible();
@@ -183,4 +187,29 @@ test('the board shows codes, types and client marks',async({page})=>{
  await expect(page.getByText('Poster',{exact:true}).first()).toBeVisible();
  await expect(page.getByRole('link',{name:'Kape Q4 Launch Kit'})).toBeVisible();
  expect(errors).toEqual([]);
+});
+test('project rooms are visible only to the people assigned',async()=>{
+ const project=await create('projects',{name:'Aurora',lead:'member.test',team:['other.test'],status:'active'});
+ const posted=await create('chat',{body:'Aurora kickoff notes',project:project.id},'member.test');
+ expect((await request(`chat?project=${project.id}`,'GET',undefined,'other.test')).data.messages.map((m:any)=>m.id)).toContain(posted.id);
+ expect((await request(`chat?project=${project.id}`)).status).toBe(404); // an executive who is not assigned
+ expect((await request('chat','POST',{body:'peeking',project:project.id})).status).toBe(404);
+ expect((await request(`chat?id=${posted.id}`,'DELETE')).status).toBe(404);
+ expect((await request('chat-reactions','POST',{messageId:posted.id,reaction:'heart'})).status).toBe(404);
+ expect((await request('chat?channel=general','GET',undefined,'member.test')).data.messages.some((m:any)=>m.id===posted.id)).toBeFalsy();
+ const rooms=(c:string)=>(request('chat-conversations','GET',undefined,c)).then(r=>r.data.filter((x:any)=>x.conversation.startsWith('project:')));
+ expect((await rooms('member.test')).map((r:any)=>r.name)).toContain('Aurora');
+ expect(await rooms('exec.test')).toEqual([]);
+ expect((await request('badges','GET',undefined,'exec.test')).data.chat).toBe(0); // never counts a room they cannot open
+});
+test('presence moves from active to idle to offline',async()=>{
+ const who=(rows:any[])=>rows.find((m:any)=>m.username==='other.test').presence;
+ await request('presence','POST',{active:true},'other.test');
+ expect(who((await request('team')).data)).toBe('active');
+ await request('presence','POST',{active:false},'other.test');
+ expect(who((await request('team')).data)).toBe('active'); // still active: the last interaction was moments ago
+ await db.query(`UPDATE admin_users SET last_active_at = now() - interval '10 minutes' WHERE username='other.test'`);
+ expect(who((await request('team')).data)).toBe('idle');
+ await db.query(`UPDATE admin_users SET last_seen_at = now() - interval '10 minutes' WHERE username='other.test'`);
+ expect(who((await request('team')).data)).toBe('offline');
 });

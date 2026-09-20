@@ -45,6 +45,7 @@ const VIEWS: Record<string, Partial<Record<string, Handler>>> = {
   },
   'chat-pins': { POST: async(s,r)=>chat.pin(s,await readBody(r)) },
   'chat-conversations': { GET: s=>chat.conversations(s) },
+  presence: { POST: async(s,r)=>chat.heartbeat(s,await readBody(r)) },
   profile: {
     GET: (s) => views.profile(s),
     PATCH: async (s, r) => views.updateProfile(s, await readBody(r)),

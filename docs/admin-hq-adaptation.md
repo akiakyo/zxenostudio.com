@@ -9,7 +9,7 @@ The client's `zxeno-hq_2.html` provides functional reference. The admin retains 
 | Project owners, teams and budgets | Existing project editor and project detail, with spend from recorded expenses |
 | Tasks and milestones | Existing persistent task lists, board, calendar and milestone actions |
 | Week calendar and agenda | Existing calendar plus date-specific events, attendees, Manila times and room/location |
-| Channels and direct messages | Chat with a grouped channel rail, participant-only DMs, per-conversation unread badges, polling, message search, pinning, reactions and asset links |
+| Channels and direct messages | Chat with a grouped channel rail, participant-only DMs, a room per live project, per-conversation unread badges, polling, message search, pinning, reactions and asset links |
 | Approvals | New review queue, assigned reviewers, explicit revision/approval states, resubmission versions, image pins, comments, image/video previews |
 | Assets | Existing library plus folders, list view, previews, file-size metadata and actual clipboard links |
 | Clients and pipeline | Client cards with the client's own mark, industry, status and live project count, split into active and onboarding/paused; plus details, account owners, agreement, palette and pipeline board/editors |
@@ -18,13 +18,26 @@ The client's `zxeno-hq_2.html` provides functional reference. The admin retains 
 | Handbook | Searchable, editable documents; executives publish and edit, members read |
 | Global tools | Search (Ctrl/Cmd K), quick creation and per-user notification read state; existing theme settings retained |
 | Sidebar counts | Unread chat and pending approval counts on the sidebar, scoped to what each person may act on |
-| Presence | Work-status dot on avatars, a who-is-in grid on the dashboard and a status legend |
+| Presence | Live active/idle/offline dot on avatars from a workspace-wide heartbeat, a who-is-in grid on the dashboard and a legend |
+| Sound | A short tone for a new chat message or a new notification, with an on/off switch in Settings |
 
 Sparklines are drawn only where real history exists: money actually received per month, and tasks by the day they fall due. Where the workspace keeps no history, such as how many projects were active last week, no line is drawn rather than inventing one. A flat or single-point series draws nothing.
 
 Project codes are assigned by the database from a sequence and are never editable, so a code stays put once people start quoting it. The sequence advances past the highest code in use, so deleting a project does not hand its code to the next one.
 
 The board keeps the workspace's five statuses, including On hold, rather than the prototype's four. The prototype simply used a different status set; the live records did not change.
+
+## Project rooms
+
+Every live project the reader is assigned to gets a room in the chat rail, named after the project. Only the project lead and the people on its team may open it, post in it, react in it or delete from it. Executives are not exempt, which matches how direct messages already work: an executive who is not on a project sees no room, and their sidebar count never includes its messages. An unassigned reader gets "not found" rather than "forbidden", so the existence of a room is not leaked. Archived and completed projects drop out of the rail.
+
+This means an executive who creates a project but does not assign themselves will not see its room until they are added to the team.
+
+## Presence and sound
+
+Presence is worked out from a heartbeat the whole workspace sends every thirty seconds while its tab is visible, not from chat polling alone. Someone is active when they have interacted in the last five minutes, idle when the heartbeat continues without interaction, and offline once the heartbeat stops for ninety seconds. The dot on an avatar means presence; where someone is working stays a separate badge, because the two answer different questions.
+
+Notification and message tones are generated in the browser rather than shipped as audio files. Browsers refuse to play sound before someone has interacted with the page, so the audio context is unlocked on the first click or keypress and the tone is simply skipped if it is still locked. The preference is per device and lives in Settings.
 
 ## Permissions and persistence
 

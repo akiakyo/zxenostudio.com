@@ -38,11 +38,16 @@ export async function readNotifications(s:Session,body:Record<string,unknown>){
 export async function badges(s:Session){
  const [chat,approvals]=await Promise.all([
   query(`SELECT count(*)::int AS n FROM admin_chat_messages m
-   LEFT JOIN admin_chat_reads r ON r.username=$1
-    AND r.conversation=CASE WHEN m.recipient IS NULL THEN m.channel ELSE 'dm:'||m.author END
+   LEFT JOIN admin_chat_reads r ON r.username=$1 AND r.conversation = CASE
+     WHEN m.recipient IS NOT NULL THEN 'dm:'||m.author
+     WHEN m.project_id IS NOT NULL THEN 'project:'||m.project_id::text
+     ELSE m.channel END
    WHERE m.deleted_at IS NULL AND m.author<>$1
      AND (m.recipient IS NULL OR m.recipient=$1)
-     AND (m.recipient IS NOT NULL OR m.channel=ANY($2::text[]))
+     AND (m.recipient IS NOT NULL OR m.project_id IS NOT NULL OR m.channel=ANY($2::text[]))
+     AND (m.project_id IS NULL OR EXISTS (
+       SELECT 1 FROM admin_projects p WHERE p.id = m.project_id
+         AND p.archived_at IS NULL AND (p.lead=$1 OR $1 = ANY(p.team))))
      AND m.id>coalesce(r.last_message_id,0)`,[s.username,CHANNELS]),
   query(`SELECT count(*)::int AS n FROM admin_approvals
    WHERE status='pending' AND ($2 OR reviewer=$1)`,[s.username,isExecutive(s)]),

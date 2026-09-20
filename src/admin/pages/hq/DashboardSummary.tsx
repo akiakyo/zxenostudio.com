@@ -1,6 +1,6 @@
 import { ListChecks, ShieldCheck } from 'lucide-react';
 import { useApi } from '../../lib/api';
-import { formatDate, label, moneyShort, relativeDay, todayIso, workStatus } from '../../lib/format';
+import { formatDate, label, moneyShort, presenceLabel, relativeDay, todayIso, workStatus } from '../../lib/format';
 import { Link } from '../../lib/router';
 import { useWorkspace } from '../../lib/workspace';
 import { Avatar, ErrorNote, Panel, StatusBadge } from '../../ui/ui';
@@ -222,17 +222,25 @@ export function DashboardSummary() {
               {team.map((m) => (
                 <li key={m.username}>
                   <Link to={`/chat?dm=${encodeURIComponent(m.username)}`} className="presence-person">
-                    <Avatar name={m.name || m.username} size={36} status={m.workStatus} />
+                    <Avatar name={m.name || m.username} size={36} status={m.presence} />
                     <span className="presence-name">{(m.name || m.username).split(' ')[0]}</span>
-                    <span className="sr-only">{workStatus(m.workStatus)}. Send a direct message.</span>
+                    <span className="sr-only">{presenceLabel(m.presence)}, {workStatus(m.workStatus).toLowerCase()}. Send a direct message.</span>
                   </Link>
                 </li>
               ))}
             </ul>
             <p className="presence-legend">
+              {(['active', 'idle', 'offline'] as const)
+                .map((state) => ({ state, count: team.filter((m) => m.presence === state).length }))
+                .filter((row) => row.count > 0)
+                .map((row) => (
+                  <span key={row.state}>
+                    <i className={`presence-dot is-${row.state}`} aria-hidden="true" />
+                    {row.count} {presenceLabel(row.state).toLowerCase()}
+                  </span>
+                ))}
               {(data?.people ?? []).map((p) => (
-                <span key={p.workStatus}>
-                  <i className={`presence-dot is-${p.workStatus}`} aria-hidden="true" />
+                <span key={p.workStatus} className="muted">
                   {p.count} {workStatus(p.workStatus).toLowerCase()}
                 </span>
               ))}

@@ -108,8 +108,8 @@ export function Avatar({
 }: {
   name: string | null | undefined;
   size?: number;
-  /* work status: draws a presence dot. The dot is decorative, so anywhere it
-     appears the status is also written out for screen readers. */
+  /* active, idle or offline: draws a presence dot. The dot is decorative, so
+     anywhere it appears the state is also written out for screen readers. */
   status?: string | null;
 }) {
   const text = initials(name ?? "");

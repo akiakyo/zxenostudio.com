@@ -25,7 +25,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { logout, useApi } from "./lib/api";
+import { logout, post, useApi } from "./lib/api";
 import { Link, useLocation } from "./lib/router";
 import { useWorkspace } from "./lib/workspace";
 import { Avatar } from "./ui/ui";
@@ -172,6 +172,32 @@ export function Shell() {
     }, 60000);
     return () => clearInterval(timer);
   }, [reloadBadges, path]);
+
+  /* Presence heartbeat for the whole workspace, not just the chat page.
+     "Active" means the tab is visible and this person has done something in
+     the last few minutes; a heartbeat without that marks them idle, and no
+     heartbeat at all eventually reads as offline. */
+  useEffect(() => {
+    let lastTouch = Date.now();
+    const seen = () => {
+      lastTouch = Date.now();
+    };
+    const events = ["pointerdown", "keydown", "wheel", "focus"] as const;
+    for (const name of events) window.addEventListener(name, seen, { passive: true });
+
+    const beat = () => {
+      if (document.hidden) return;
+      void post("presence", { active: Date.now() - lastTouch < 5 * 60 * 1000 }).catch(() => {});
+    };
+    beat();
+    const timer = setInterval(beat, 30000);
+    document.addEventListener("visibilitychange", beat);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", beat);
+      for (const name of events) window.removeEventListener(name, seen);
+    };
+  }, []);
 
   const Page = route?.page;
 

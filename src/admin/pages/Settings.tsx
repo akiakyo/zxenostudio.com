@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Lock, Monitor, Moon, Sun } from "lucide-react";
+import { Lock, Monitor, Moon, Sun , Volume2, VolumeX } from "lucide-react";
 import { patch, useApi } from "../lib/api";
 import type { Member } from "../lib/types";
+import { chime, setSoundOn, soundOn } from "../lib/sound";
 import { useWorkspace } from "../lib/workspace";
 import { PasswordForm } from "../ui/password";
 import {
@@ -50,6 +51,7 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [theme, setTheme] = useState<Theme>(readTheme);
+  const [sound, setSound] = useState<boolean>(soundOn);
 
   useEffect(() => {
     if (data) {
@@ -145,6 +147,34 @@ export function SettingsPage() {
               onClick={() => {
                 setTheme(value);
                 applyTheme(value);
+              }}
+            >
+              <Icon size={15} aria-hidden /> {text}
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <Panel title="Sound">
+        <p className="hint">
+          A short tone for new chat messages and new notifications. This is remembered on this
+          device only.
+        </p>
+        <div className="segmented" role="radiogroup" aria-label="Sound">
+          {([
+            [true, "On", Volume2],
+            [false, "Off", VolumeX],
+          ] as const).map(([value, text, Icon]) => (
+            <button
+              key={text}
+              type="button"
+              role="radio"
+              aria-checked={sound === value}
+              onClick={() => {
+                setSound(value);
+                setSoundOn(value);
+                /* play the tone when switching on, so it is obvious it works */
+                if (value) chime.notification();
               }}
             >
               <Icon size={15} aria-hidden /> {text}

@@ -9,9 +9,13 @@ export type Session = {
   access: Access;
 };
 
+/* how the workspace sees someone right now, worked out from their heartbeat */
+export type Presence = "active" | "idle" | "offline";
+
 export type Member = {
   department: string;
   workStatus: string;
+  presence: Presence;
   username: string;
   name: string;
   title: string;
@@ -248,6 +252,7 @@ export type ChatReaction = { reaction: string; users: string[] };
 export type ChatMessage = {
   channel: string;
   recipient: string | null;
+  projectId: string | null;
   pinned: boolean;
   id: string;
   author: string;
@@ -267,9 +272,13 @@ export type ChatMember = {
   title: string;
   access: Access;
   online: boolean;
+  presence: Presence;
 };
 
+export type ChatRoomProject = { id: string; name: string; code: string };
+
 export type ChatPage = {
+  project: ChatRoomProject | null;
   now: string;
   messages: ChatMessage[];
   hasMore: boolean;

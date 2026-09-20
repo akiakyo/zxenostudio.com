@@ -6,6 +6,7 @@ import { camelRow, isDate, isUuid, logActivity, parseFields } from "./crud.js";
 import { one, Params, query, today, type Row } from "./db.js";
 import { HttpError, requireExecutive } from "./http.js";
 import { USERNAME_PATTERN } from "./users.js";
+import { PRESENCE } from "./chat.js";
 
 export type CalendarEvent = {
   type: "project" | "milestone" | "task" | "invoice" | "event";
@@ -264,6 +265,7 @@ export async function executiveOverview(session: Session) {
 }
 
 const MEMBER_COLUMNS = `u.username, u.name, u.title, u.access, u.phone, u.bio, u.department, u.work_status,
+  ${PRESENCE.replace(/last_/g, "u.last_")} AS presence,
   (SELECT count(*)::int FROM admin_tasks t
     WHERE t.assignee = u.username AND NOT t.is_private AND t.status <> 'done') AS open_tasks`;
 

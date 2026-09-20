@@ -87,35 +87,36 @@ export function DashboardPage() {
     <div className="page">
       <DashboardSummary />
 
-      <section className="quick-actions" aria-label="Quick actions">
-        <button type="button" className="quick-action" onClick={() => projectEditor.openNew({ status: "planning" })}>
-          <span className="qa-icon"><FolderPlus size={20} aria-hidden /></span>
-          <span>
-            <strong>New project</strong>
-            <small>Set dates, client and progress</small>
-          </span>
-        </button>
-        <button type="button" className="quick-action" onClick={() => updateEditor.openNew()}>
-          <span className="qa-icon"><Send size={20} aria-hidden /></span>
-          <span>
-            <strong>Weekly status update</strong>
-            <small>What got done, what's next</small>
-          </span>
-        </button>
-        <button type="button" className="quick-action" onClick={() => noteEditor.openNew({ meetingDate: todayIso(), attendees: [session.username] })}>
-          <span className="qa-icon"><NotebookPen size={20} aria-hidden /></span>
-          <span>
-            <strong>New meeting note</strong>
-            <small>Decisions and action items</small>
-          </span>
-        </button>
-      </section>
 
       {error && <ErrorNote message={error} onRetry={reload} />}
       {loading && !data && <Loading />}
 
       {data && (
         <>
+          <h2 className="section-heading">Your work</h2>
+          <section className="quick-actions" aria-label="Quick actions">
+            <button type="button" className="quick-action" onClick={() => projectEditor.openNew({ status: "planning" })}>
+              <span className="qa-icon"><FolderPlus size={20} aria-hidden /></span>
+              <span>
+                <strong>New project</strong>
+                <small>Set dates, client and progress</small>
+              </span>
+            </button>
+            <button type="button" className="quick-action" onClick={() => updateEditor.openNew()}>
+              <span className="qa-icon"><Send size={20} aria-hidden /></span>
+              <span>
+                <strong>Weekly status update</strong>
+                <small>What got done, what's next</small>
+              </span>
+            </button>
+            <button type="button" className="quick-action" onClick={() => noteEditor.openNew({ meetingDate: todayIso(), attendees: [session.username] })}>
+              <span className="qa-icon"><NotebookPen size={20} aria-hidden /></span>
+              <span>
+                <strong>New meeting note</strong>
+                <small>Decisions and action items</small>
+              </span>
+            </button>
+          </section>
           <div className="dash-grid">
             <Panel
               title="My tasks"
@@ -191,27 +192,6 @@ export function DashboardPage() {
                 <EmptyState title="No announcements yet" />
               )}
               <Link to="/announcements" className="panel-more">All announcements →</Link>
-            </Panel>
-
-            <Panel title="Active projects">
-              {data.projects.length ? (
-                <ul className="project-mini">
-                  {data.projects.map((p) => (
-                    <li key={p.id}>
-                      <Link to={`/projects/${p.id}`} className="project-mini-link">
-                        <span className="simple-title">{p.name}</span>
-                        <span className="simple-meta">
-                          {p.dueDate ? `Due ${formatDate(p.dueDate)}` : "No due date"}
-                        </span>
-                        <Progress value={p.progress} />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyState icon={FolderKanban} title="No active projects" />
-              )}
-              <Link to="/projects" className="panel-more">All projects →</Link>
             </Panel>
 
             <Panel

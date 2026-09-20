@@ -164,6 +164,13 @@ export const WORK_STATUS: Record<string, string> = {
 };
 export const workStatus = (value: string) => WORK_STATUS[value] ?? label(value);
 /* matches the presence dot colours in admin.css */
+export const PRESENCE_LABELS: Record<string, string> = {
+  active: "Active",
+  idle: "Idle",
+  offline: "Offline",
+};
+export const presenceLabel = (value: string) => PRESENCE_LABELS[value] ?? "Offline";
+
 export const WORK_TONES: Record<string, "green" | "blue" | "amber" | "neutral"> = {
   studio: "green",
   remote: "blue",

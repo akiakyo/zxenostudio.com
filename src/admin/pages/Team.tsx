@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Phone, Users } from "lucide-react";
 import { useApi } from "../lib/api";
-import { workStatus, WORK_TONES } from "../lib/format";
+import { presenceLabel, workStatus, WORK_TONES } from "../lib/format";
 import { Link } from "../lib/router";
 import { PeopleTabs } from "./hq/PeopleTabs";
 import type { Member } from "../lib/types";
@@ -60,7 +60,8 @@ export function TeamPage() {
           <div className="team-grid">
             {group.people.map((member) => (
               <article key={member.username} className="member-card">
-                <Avatar name={member.name || member.username} size={56} status={member.workStatus} />
+                <Avatar name={member.name || member.username} size={56} status={member.presence} />
+                <span className="sr-only">{presenceLabel(member.presence)}.</span>
                 <h3>{member.name || member.username}</h3>
                 <p className="member-title">{member.title}</p>
                 <div className="member-badges">

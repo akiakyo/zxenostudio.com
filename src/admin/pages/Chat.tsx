@@ -33,8 +33,9 @@ import {
   X,
 } from "lucide-react";
 import { api, del, post, query, useApi } from "../lib/api";
-import { todayIso } from "../lib/format";
+import { presenceLabel, todayIso } from "../lib/format";
 import type { ChatMember, ChatMessage, ChatPage } from "../lib/types";
+import { chime } from "../lib/sound";
 import { useWorkspace } from "../lib/workspace";
 import { Avatar, Badge, ErrorNote, IconButton, Loading, Button, Modal, SearchInput, useAction, useUi, useDebounced } from "../ui/ui";
 import { navigate, useLocation } from '../lib/router';
@@ -69,6 +70,13 @@ const CHANNEL_GROUPS = [
   { group: "Departments", channels: ["design", "production", "dev"] },
 ];
 const CHANNELS = CHANNEL_GROUPS.flatMap((g) => g.channels);
+
+/* A project's room reads as a channel, named after the project. */
+function projectChannel(name: string) {
+  return `project-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+type Conversation = { conversation: string; unread: number; projectId?: string; name?: string; code?: string };
 
 function merge(current: ChatMessage[], incoming: ChatMessage[]) {
   const byId = new Map(current.map((m) => [m.id, m]));
@@ -127,10 +135,11 @@ function MessageBody({ text }: { text: string }) {
 export function ChatPage() {
   const { search } = useLocation();
   const { team, session } = useWorkspace();
+  const project = search.get("project") || "";
   const channel = search.get("channel") || "general";
   const recipient = search.get("dm") || "";
-  const conversations = useApi<{ conversation: string; unread: number }[]>(
-    `chat-conversations?channel=${channel}&recipient=${encodeURIComponent(recipient)}`,
+  const conversations = useApi<Conversation[]>(
+    `chat-conversations?channel=${channel}&recipient=${encodeURIComponent(recipient)}&project=${encodeURIComponent(project)}`,
   );
   const reloadConversations = conversations.reload;
   useEffect(() => {
@@ -161,6 +170,9 @@ export function ChatPage() {
   }
 
   const mates = team.filter((m) => m.username !== session.username);
+  /* only the projects this person is assigned to come back at all, so the
+     list is itself the access check */
+  const rooms = (conversations.data ?? []).filter((c) => c.conversation.startsWith("project:"));
 
   return (
     <div className={`chat-shell ${rail ? "rail-open" : ""}`}>
@@ -172,7 +184,7 @@ export function ChatPage() {
               {group.channels.map((name) => (
                 <li key={name}>
                   <RailItem
-                    current={!recipient && channel === name}
+                    current={!recipient && !project && channel === name}
                     unread={unread(name)}
                     onClick={() => open(`/chat?channel=${name}`)}
                     icon={<Hash size={15} aria-hidden />}
@@ -183,6 +195,24 @@ export function ChatPage() {
             </ul>
           </div>
         ))}
+        {rooms.length > 0 && (
+          <div className="chat-rail-group">
+            <h2>Projects</h2>
+            <ul>
+              {rooms.map((room) => (
+                <li key={room.conversation}>
+                  <RailItem
+                    current={project === room.projectId}
+                    unread={room.unread}
+                    onClick={() => open(`/chat?project=${encodeURIComponent(room.projectId ?? "")}`)}
+                    icon={<Hash size={15} aria-hidden />}
+                    name={projectChannel(room.name ?? "")}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="chat-rail-group">
           <h2>Direct messages</h2>
           <ul>
@@ -192,7 +222,7 @@ export function ChatPage() {
                   current={recipient === m.username}
                   unread={unread(`dm:${m.username}`)}
                   onClick={() => open(`/chat?dm=${encodeURIComponent(m.username)}`)}
-                  icon={<Avatar name={m.name || m.username} size={20} status={m.workStatus} />}
+                  icon={<Avatar name={m.name || m.username} size={20} status={m.presence} />}
                   name={(m.name || m.username).split(" ")[0]}
                 />
               </li>
@@ -212,9 +242,10 @@ export function ChatPage() {
          filter on changes what is shown, it must never throw away the loaded log,
          the unsent draft or the scroll position */}
       <Conversation
-        key={`${channel}:${recipient}`}
+        key={`${channel}:${recipient}:${project}`}
         channel={channel}
         recipient={recipient}
+        project={project}
         q={q}
         pins={pins}
         searchText={text}
@@ -262,6 +293,7 @@ function RailItem({
 function Conversation({
   channel,
   recipient,
+  project,
   q,
   pins,
   searchText,
@@ -272,6 +304,7 @@ function Conversation({
 }: {
   channel: string;
   recipient: string;
+  project: string;
   q: string;
   pins: boolean;
   searchText: string;
@@ -281,11 +314,14 @@ function Conversation({
   onToggleRail: () => void;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const scope={channel,recipient,q,pinned:pins?1:null};
+  /* a project room is addressed by its id; a channel by its name */
+  const scope={channel:project?'':channel,recipient:project?'':recipient,project,q,pinned:pins?1:null};
   const matchesFilter=(message:ChatMessage)=>
     (!q||message.body.toLowerCase().includes(q.toLowerCase()))&&(!pins||message.pinned);
   const [attach,setAttach]=useState(false);const assets=useApi<Asset[]>(attach?'assets':null);
   const { session, isExecutive, memberName } = useWorkspace();
+  const [room,setRoom]=useState<{id:string;name:string;code:string}|null>(null);
+  const title=project?(room?`#${projectChannel(room.name)}`:'Project room'):recipient?memberName(recipient):`#${channel}`;
   const run = useAction();
   const { confirm } = useUi();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -316,6 +352,8 @@ function Conversation({
     setMessages((current) => {
       const next = merge(current, page.messages);
       const added = next.filter((m) => !current.some((c) => c.id === m.id));
+      /* a sound only for what someone else just sent */
+      if (added.some((m) => m.author !== session.username)) chime.message();
       if (added.length) {
         if (atBottom.current || added.every((m) => m.author === session.username)) {
           scrollMode.current = "bottom";
@@ -342,6 +380,7 @@ function Conversation({
         lastNow.current = page.now;
         setHasMore(page.hasMore);
         setMembers(page.members);
+        setRoom(page.project);
         scrollMode.current = "bottom";
         /* a whole page, not an update: replace what is on screen */
         setMessages(page.messages);
@@ -392,7 +431,7 @@ function Conversation({
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", wake);
     };
-  }, [apply, q, pins]);
+  }, [apply, q, pins, project]);
 
   /* stick to the bottom for new messages; keep place when loading older ones */
   useLayoutEffect(() => {
@@ -428,7 +467,9 @@ function Conversation({
        one sends; put the text back only if sending fails and nothing new was typed */
     setDraft("");
     if (inputRef.current) inputRef.current.style.height = "auto";
-    const message = await run(() => post<ChatMessage>("chat", { body,channel,recipient }));
+    const message = await run(() =>
+      post<ChatMessage>("chat", project ? { body, project } : { body, channel, recipient }),
+    );
     if (!message) setDraft((current) => current || body);
     if (message) {
       scrollMode.current = "bottom";
@@ -521,7 +562,7 @@ function Conversation({
     };
   }, [picker]);
 
-  const online = members.filter((m) => m.online);
+  const online = members.filter((m) => m.presence !== "offline");
   const pickerMessage = picker && messages.find((m) => m.id === picker.id);
 
   return (
@@ -536,7 +577,7 @@ function Conversation({
           <PanelLeft size={18} aria-hidden />
         </button>
         <div className="chat-title">
-          <h1>{recipient ? memberName(recipient) : `#${channel}`}</h1>
+          <h1>{title}</h1>
           <span>
             {members.length} members · <span className="online-count">{online.length} online</span>
           </span>
@@ -579,7 +620,7 @@ function Conversation({
           <SearchInput
             value={searchText}
             onChange={onSearch}
-            placeholder={recipient ? "Search this conversation" : `Search #${channel}`}
+            placeholder={`Search ${title}`}
           />
         </div>
       )}
@@ -610,7 +651,7 @@ function Conversation({
               <div className="chat-empty">
                 <span className="empty-icon"><MessageCircle size={22} aria-hidden /></span>
                 <strong>Say hello to the studio</strong>
-                <p>{recipient?'Only you and this person can read this conversation.':q||pins?'No messages match this view.':'Everyone on the team can read and reply here.'}</p>
+                <p>{recipient?'Only you and this person can read this conversation.':project?'Only the people assigned to this project can read this room.':q||pins?'No messages match this view.':'Everyone on the team can read and reply here.'}</p>
               </div>
             )}
             {messages.map((message, index) => {
@@ -723,16 +764,14 @@ function Conversation({
           <form className="chat-composer" onSubmit={send}>
             <IconButton icon={Paperclip} label="Attach asset link" onClick={()=>setAttach(true)}/>
             <IconButton icon={SmilePlus} label="Insert emoji" onClick={()=>{setDraft(d=>d+' 👍');inputRef.current?.focus();}}/>
-            <label htmlFor="chat-input" className="sr-only">
-              {recipient ? `Message ${memberName(recipient)}` : `Message #${channel}`}
-            </label>
+            <label htmlFor="chat-input" className="sr-only">Message {title}</label>
             <textarea
               id="chat-input"
               ref={inputRef}
               rows={1}
               value={draft}
               maxLength={4000}
-              placeholder={recipient ? `Message ${memberName(recipient)}` : `Message #${channel}`}
+              placeholder={`Message ${title}`}
               onChange={(e) => {
                 setDraft(e.target.value);
                 e.target.style.height = "auto";
@@ -752,18 +791,17 @@ function Conversation({
               <h2>Members</h2>
               <IconButton icon={X} label="Close members" onClick={() => setShowMembers(false)} />
             </div>
-            {(["Online", "Offline"] as const).map((group) => {
-              const list = members.filter((m) => m.online === (group === "Online"));
+            {(["active", "idle", "offline"] as const).map((group) => {
+              const list = members.filter((m) => m.presence === group);
               if (!list.length) return null;
               return (
                 <section key={group}>
-                  <h3>{group} — {list.length}</h3>
+                  <h3>{presenceLabel(group)} — {list.length}</h3>
                   <ul>
                     {list.map((m) => (
-                      <li key={m.username} className={m.online ? "is-online" : ""}>
+                      <li key={m.username} className={m.presence !== "offline" ? "is-online" : ""}>
                         <span className="presence">
-                          <Avatar name={m.name || m.username} size={32} />
-                          <i aria-label={m.online ? "Online" : "Offline"} />
+                          <Avatar name={m.name || m.username} size={32} status={m.presence} />
                         </span>
                         <div>
                           <strong>
