@@ -1,0 +1,21 @@
+# Uploaded to Vercel is source only: the build regenerates dist/ remotely.
+.git
+node_modules
+dist
+.vercel
+.env*
+*.log
+
+# Camera masters that scripts/prepare-media.cjs transcodes into public/media/.
+# They are never read by the build, and one of them is over Vercel's 100 MB
+# per-file limit, so uploading them fails the deploy.
+assets
+
+# Local-only working files.
+reference-review
+test-results
+playwright-report
+tests
+.agents
+.claude
+skills-lock.json
