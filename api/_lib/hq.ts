@@ -1,7 +1,8 @@
 import type { Session } from './auth.js';
 import { camelRow } from './crud.js';
 import { query, today } from './db.js';
-import { HttpError } from './http.js';
+import { CHANNELS } from './chat.js';
+import { HttpError, isExecutive } from './http.js';
 
 export async function finance(search:URLSearchParams){
  const year=search.get('year')||today().slice(0,4);
@@ -30,6 +31,23 @@ export async function readNotifications(s:Session,body:Record<string,unknown>){
  if(!Array.isArray(ids)||ids.length>50||ids.some(id=>typeof id!=='string'||!/^\d+$/.test(id)))throw new HttpError(400,'Choose up to 50 notifications');
  await query(`INSERT INTO admin_notification_reads(username,activity_id) SELECT $1,id FROM admin_activity WHERE id=ANY($2::bigint[]) ON CONFLICT DO NOTHING`,[s.username,ids]);
  return {ok:true};
+}
+
+/* Counts for the sidebar. Only what this person can act on: their own unread
+   messages, and the approvals they are actually allowed to decide. */
+export async function badges(s:Session){
+ const [chat,approvals]=await Promise.all([
+  query(`SELECT count(*)::int AS n FROM admin_chat_messages m
+   LEFT JOIN admin_chat_reads r ON r.username=$1
+    AND r.conversation=CASE WHEN m.recipient IS NULL THEN m.channel ELSE 'dm:'||m.author END
+   WHERE m.deleted_at IS NULL AND m.author<>$1
+     AND (m.recipient IS NULL OR m.recipient=$1)
+     AND (m.recipient IS NOT NULL OR m.channel=ANY($2::text[]))
+     AND m.id>coalesce(r.last_message_id,0)`,[s.username,CHANNELS]),
+  query(`SELECT count(*)::int AS n FROM admin_approvals
+   WHERE status='pending' AND ($2 OR reviewer=$1)`,[s.username,isExecutive(s)]),
+ ]);
+ return {chat:chat[0].n,approvals:approvals[0].n};
 }
 
 export async function summary(s:Session){

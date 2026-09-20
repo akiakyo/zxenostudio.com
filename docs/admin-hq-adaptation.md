@@ -17,10 +17,16 @@ The client's `zxeno-hq_2.html` provides functional reference. The admin retains 
 | Team | Existing directory plus departments, work status and DM links; workload and leave sections |
 | Handbook | Searchable, editable documents; executives publish and edit, members read |
 | Global tools | Search (Ctrl/Cmd K), quick creation and per-user notification read state; existing theme settings retained |
+| Sidebar counts | Unread chat and pending approval counts on the sidebar, scoped to what each person may act on |
+| Presence | Work-status dot on avatars, a who-is-in grid on the dashboard and a status legend |
+
+Trend sparklines on the prototype's tiles are not reproduced: they were hardcoded arrays. Showing them truthfully needs recorded history, which the workspace does not yet keep.
 
 ## Permissions and persistence
 
 All new records use the authenticated API and Postgres. UI role checks are backed by API checks. Only the assigned reviewer or an executive decides approvals. Approved versions cannot be edited; requested revisions can be resubmitted. Concurrent decisions use optimistic locking. Leave reasons are visible only to their requester and executives and do not enter the shared activity feed. Executives cannot approve their own leave. DMs remain private to participants, including when another executive requests reactions or deletion.
+
+Sidebar counts follow the same rules as the pages they point at. The chat count covers unread channel messages and direct messages addressed to the reader, never someone else's conversation. The approval count shows only what the reader can decide: every pending item for executives, assigned items for a reviewer, and nothing for a submitter awaiting someone else's decision.
 
 Members can view finance and workload, following the existing shared invoice model. Expenses, capacity plans and handbook edits require executive access. Capacity is explicitly planned hours divided by available hours, with missing plans shown as unplanned rather than invented percentages.
 

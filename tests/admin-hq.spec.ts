@@ -134,3 +134,29 @@ test('the chat log, the draft and the scroll position survive searching and filt
  await expect(page.getByText('first note')).toBeVisible();
  expect(errors).toEqual([]);
 });
+test('sidebar counts follow what each person can act on',async()=>{
+ const before=(await request('badges')).data;
+ await create('chat',{body:'counts toward the badge',channel:'design'},'member.test');
+ await create('chat',{body:'private to the other member',recipient:'other.test'},'member.test');
+ const after=(await request('badges')).data;
+ expect(after.chat).toBe(before.chat+1); // the channel message only; the DM is not theirs
+ await request('chat?channel=design'); // reading the channel clears it again
+ expect((await request('badges')).data.chat).toBe(before.chat);
+ const approval=await create('approvals',{title:'Badge review',reviewer:'other.test'},'member.test');
+ expect((await request('badges')).data.approvals).toBeGreaterThan(0); // executives see every pending one
+ expect((await request('badges','GET',undefined,'other.test')).data.approvals).toBeGreaterThan(0); // the reviewer sees theirs
+ expect((await request('badges','GET',undefined,'member.test')).data.approvals).toBe(0); // the submitter cannot decide it
+ await request(`approvals?id=${approval.id}`,'PATCH',{status:'approved'},'other.test');
+ expect((await request('badges','GET',undefined,'other.test')).data.approvals).toBe(0);
+});
+test('presence shows on the team directory and the dashboard',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await request('profile','PATCH',{workStatus:'shoot'},'member.test');
+ await mount(page,'/team');
+ await expect(page.locator('.presence-dot.is-shoot').first()).toBeVisible();
+ await page.goto('/');
+ await expect(page.getByRole('heading',{name:'Studio today'})).toBeVisible();
+ await expect(page.locator('.presence-grid .presence-person').first()).toBeVisible();
+ await expect(page.locator('.presence-legend')).toContainText('on shoot');
+ expect(errors).toEqual([]);
+});

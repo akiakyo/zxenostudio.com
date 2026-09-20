@@ -18,6 +18,7 @@ type Handler = (
 const VIEWS: Record<string, Partial<Record<string, Handler>>> = {
   finance: { GET: (_s,_r,url)=>hq.finance(url.searchParams) },
   'hq-summary': { GET: s=>hq.summary(s) },
+  badges: { GET: s=>hq.badges(s) },
   notifications: { GET: s=>hq.notifications(s), POST: async(s,r)=>hq.readNotifications(s,await readBody(r)) },
   dashboard: { GET: (s) => views.dashboard(s) },
   calendar: { GET: (s, _r, url) => views.calendar(s, url.searchParams) },

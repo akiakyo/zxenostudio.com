@@ -104,21 +104,32 @@ export function StatusBadge({ value }: { value: string }) {
 export function Avatar({
   name,
   size = 32,
+  status,
 }: {
   name: string | null | undefined;
   size?: number;
+  /* work status: draws a presence dot. The dot is decorative, so anywhere it
+     appears the status is also written out for screen readers. */
+  status?: string | null;
 }) {
   const text = initials(name ?? "");
   /* a stable hue per person so the same member always reads the same */
   let hash = 0;
   for (const char of name ?? "") hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return (
+  const face = (
     <span
       className="avatar"
       style={{ width: size, height: size, fontSize: size * 0.38, ["--hue" as string]: hash % 360 }}
       aria-hidden="true"
     >
       {text}
+    </span>
+  );
+  if (!status) return face;
+  return (
+    <span className="avatar-wrap" style={{ width: size, height: size }}>
+      {face}
+      <span className={`presence-dot is-${status}`} aria-hidden="true" />
     </span>
   );
 }

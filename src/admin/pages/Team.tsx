@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Phone, Users } from "lucide-react";
 import { useApi } from "../lib/api";
+import { workStatus, WORK_TONES } from "../lib/format";
 import { Link } from "../lib/router";
 import type { Member } from "../lib/types";
 import {
@@ -13,7 +14,6 @@ import {
   PageHeader,
   SearchInput,
   SelectFilter,
-  StatusBadge,
 } from "../ui/ui";
 
 export function TeamPage() {
@@ -40,11 +40,11 @@ export function TeamPage() {
       <div className="team-grid">
         {members.map((member) => (
           <article key={member.username} className="member-card">
-            <Avatar name={member.name || member.username} size={56} />
+            <Avatar name={member.name || member.username} size={56} status={member.workStatus} />
             <h2>{member.name || member.username}</h2>
             <p className="member-title">{member.title}</p>
             <div className="member-badges">
-              <StatusBadge value={member.workStatus}/>
+              <Badge tone={WORK_TONES[member.workStatus] ?? "neutral"}>{workStatus(member.workStatus)}</Badge>
               {member.access === "executive" && <Badge tone="green">Executive</Badge>}
               <span className="muted">@{member.username}</span>
             </div>

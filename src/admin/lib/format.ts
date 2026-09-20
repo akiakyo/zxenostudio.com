@@ -146,6 +146,21 @@ export const LABELS: Record<string, string> = {
 
 export const label = (value: string) => LABELS[value] ?? value;
 
+export const WORK_STATUS: Record<string, string> = {
+  studio: "In studio",
+  remote: "Remote",
+  shoot: "On shoot",
+  off: "Off",
+};
+export const workStatus = (value: string) => WORK_STATUS[value] ?? label(value);
+/* matches the presence dot colours in admin.css */
+export const WORK_TONES: Record<string, "green" | "blue" | "amber" | "neutral"> = {
+  studio: "green",
+  remote: "blue",
+  shoot: "amber",
+  off: "neutral",
+};
+
 export function options(values: readonly string[]) {
   return values.map((value) => ({ value, label: label(value) }));
 }

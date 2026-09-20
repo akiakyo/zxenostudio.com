@@ -25,7 +25,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { logout } from "./lib/api";
+import { logout, useApi } from "./lib/api";
 import { Link, useLocation } from "./lib/router";
 import { useWorkspace } from "./lib/workspace";
 import { Avatar } from "./ui/ui";
@@ -63,6 +63,8 @@ type NavItem = {
   icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
   page: ComponentType;
   executiveOnly?: boolean;
+  /* which sidebar count to show, and what that count means out loud */
+  badge?: { key: "chat" | "approvals"; noun: string };
 };
 
 /* The sidebar, top to bottom: what's happening, the work itself, the creative
@@ -72,7 +74,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     group: "Overview",
     items: [
       { path: "/", label: "Dashboard", icon: LayoutDashboard, page: DashboardPage },
-      { path: "/chat", label: "Studio chat", icon: MessageCircle, page: ChatPage },
+      { path: "/chat", label: "Studio chat", icon: MessageCircle, page: ChatPage, badge: { key: "chat", noun: "unread" } },
       { path: "/announcements", label: "Announcements", icon: Megaphone, page: AnnouncementsPage },
       { path: "/activity", label: "Activity feed", icon: Activity, page: ActivityPage },
     ],
@@ -99,7 +101,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { path: "/briefs", label: "Creative briefs", icon: FileText, page: BriefsPage },
       { path: "/feedback", label: "Feedback loop", icon: MessagesSquare, page: FeedbackPage },
-      { path: '/approvals', label: 'Approvals', icon: ShieldCheck, page: ApprovalsPage },
+      { path: '/approvals', label: 'Approvals', icon: ShieldCheck, page: ApprovalsPage, badge: { key: "approvals", noun: "waiting for you" } },
       { path: '/handbook', label: 'Handbook', icon: FileText, page: HandbookPage },
       { path: "/meeting-notes", label: "Meeting notes", icon: NotebookPen, page: MeetingNotesPage },
       { path: "/assets", label: "Asset library", icon: Images, page: AssetsPage },
@@ -152,12 +154,24 @@ export function Shell() {
   const { path } = useLocation();
   const [drawer, setDrawer] = useState(false);
   const route = resolve(path);
+  /* sidebar counts: refreshed on every page change, and slowly in the
+     background so a badge does not sit stale while someone reads one page */
+  const badges = useApi<Record<"chat" | "approvals", number>>("badges");
+  const reloadBadges = badges.reload;
 
   useEffect(() => {
     setDrawer(false);
     window.scrollTo(0, 0);
     document.title = `${route?.label ?? "Not found"} — ZXENO admin`;
   }, [path, route?.label]);
+
+  useEffect(() => {
+    reloadBadges();
+    const timer = setInterval(() => {
+      if (!document.hidden) reloadBadges();
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [reloadBadges, path]);
 
   const Page = route?.page;
 
@@ -197,17 +211,26 @@ export function Shell() {
             return (
               <div className="nav-group" key={group.group}>
                 <div className="nav-heading">{group.group}</div>
-                {items.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className="nav-link"
-                    aria-current={isActive(item.path, path) ? "page" : undefined}
-                  >
-                    <item.icon size={17} aria-hidden />
-                    {item.label}
-                  </Link>
-                ))}
+                {items.map((item) => {
+                  const count = item.badge ? (badges.data?.[item.badge.key] ?? 0) : 0;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className="nav-link"
+                      aria-current={isActive(item.path, path) ? "page" : undefined}
+                    >
+                      <item.icon size={17} aria-hidden />
+                      {item.label}
+                      {count > 0 && item.badge && (
+                        <span className="nav-badge">
+                          {count > 99 ? "99+" : count}
+                          <span className="sr-only"> {item.badge.noun}</span>
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
             );
           })}
