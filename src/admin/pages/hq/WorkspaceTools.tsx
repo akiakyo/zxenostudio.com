@@ -8,7 +8,7 @@ import { Button, ErrorNote, Menu, Modal, SearchInput, useAction } from '../../ui
 import type { RecordRow } from './Records';
 import { eventConfig } from './config';
 
-const PAGES=[['Dashboard','/'],['Projects','/projects'],['My tasks','/tasks/mine'],['Calendar','/calendar'],['Studio chat','/chat'],['Approvals','/approvals'],['Asset library','/assets'],['Clients','/clients'],['Finance','/finance'],['Invoices','/invoices'],['Team','/team'],['Workload','/workload'],['Leave','/leave'],['Handbook','/handbook'],['Settings','/settings']];
+const PAGES=[['Dashboard','/'],['Projects','/projects'],['My tasks','/tasks/mine'],['Calendar','/calendar'],['Chat','/chat'],['Approvals','/approvals'],['Asset library','/assets'],['Clients','/clients'],['Finance','/finance'],['Invoices','/invoices'],['Team','/team'],['Workload','/workload'],['Leave','/leave'],['Handbook','/handbook'],['Settings','/settings']];
 export function WorkspaceTools(){
  const [open,setOpen]=useState(false),[bell,setBell]=useState(false),[q,setQ]=useState('');
  const {projects,clients,team}=useWorkspace();const run=useAction();

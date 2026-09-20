@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, Mail, Pencil, Phone, Plus, Trash2, Eye } from "lucide-react";
+import { Building2, Pencil, Plus, Trash2, Eye } from "lucide-react";
 import { del, query, useApi } from "../lib/api";
 import type { Client } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
@@ -20,7 +20,53 @@ import {
   useDebounced,
   useUi,
   Tabs,
+  ClientMark,
+  StatusBadge,
 } from "../ui/ui";
+
+function ClientCards({
+  clients,
+  onOpen,
+  onEdit,
+  onRemove,
+  isExecutive,
+}: {
+  clients: Client[];
+  onOpen: (id: string) => void;
+  onEdit: (client: Client) => void;
+  onRemove: (client: Client) => void;
+  isExecutive: boolean;
+}) {
+  return (
+    <ul className="client-grid">
+      {clients.map((client) => (
+        <li key={client.id} className="client-card">
+          <button type="button" className="client-card-open" onClick={() => onOpen(client.id)}>
+            <ClientMark name={client.name} palette={client.palette} size={40} />
+            <span className="client-card-name">
+              <strong>{client.name}</strong>
+              <small>{client.industry || client.company || "No industry set"}</small>
+            </span>
+          </button>
+          <div className="client-card-foot">
+            <StatusBadge value={client.status} />
+            <span className="muted">
+              {client.activeProjectCount} active
+              <span className="sr-only"> {client.activeProjectCount === 1 ? "project" : "projects"}</span>
+            </span>
+            <Menu
+              items={[
+                { label: "Client details", icon: Eye, onSelect: () => onOpen(client.id) },
+                { label: "Edit", icon: Pencil, onSelect: () => onEdit(client) },
+                isExecutive && { label: "Delete", icon: Trash2, danger: true, onSelect: () => onRemove(client) },
+              ]}
+            />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function ClientsPage() {
   const {search}=useLocation();const [selected,setSelected]=useState<string|null>(search.get('id'));
@@ -55,7 +101,11 @@ export function ClientsPage() {
     <div className="page">
       <PageHeader
         title="Clients"
-        description="Everyone the studio works for, with how to reach them."
+        description={
+          data
+            ? `${data.length} ${data.length === 1 ? "client" : "clients"}, ${data.filter((c) => c.status === "active" || c.status === "in_house").length} active.`
+            : "Everyone the studio works for, with how to reach them."
+        }
         actions={<Button variant="primary" icon={Plus} onClick={() => editor.openNew()}>Add client</Button>}
       />
       <Tabs label="Clients view" value={tab} onChange={setTab} tabs={[{value:'clients',label:'Clients'},{value:'pipeline',label:'Pipeline'}]} />
@@ -72,58 +122,27 @@ export function ClientsPage() {
         />
       )}
       {data && data.length > 0 && (
-        <div className="table-wrap">
-          <table className="table clients-table">
-            <thead>
-              <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Company</th>
-                <th scope="col">Email</th>
-                <th scope="col">Phone number</th>
-                <th scope="col">Notes</th>
-                <th scope="col">Projects</th>
-                <th scope="col"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((client) => (
-                <tr key={client.id}>
-                  <td>
-                    <button type="button" className="cell-title text-btn" onClick={() => editor.openEdit(client)}>
-                      {client.name}
-                    </button>
-                  </td>
-                  <td>{client.company || <span className="muted">—</span>}</td>
-                  <td>
-                    {client.email ? (
-                      <a href={`mailto:${client.email}`} className="contact-link"><Mail size={13} aria-hidden /> {client.email}</a>
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </td>
-                  <td>
-                    {client.phone ? (
-                      <a href={`tel:${client.phone.replace(/[^\d+]/g, "")}`} className="contact-link"><Phone size={13} aria-hidden /> {client.phone}</a>
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </td>
-                  <td className="cell-notes"><span className="clamp-2">{client.notes || <span className="muted">—</span>}</span></td>
-                  <td className="num">{client.projectCount}</td>
-                  <td className="cell-actions">
-                    <Menu
-                      items={[
-                        {label:'Client details',icon:Eye,onSelect:()=>setSelected(client.id)},
-                        { label: "Edit", icon: Pencil, onSelect: () => editor.openEdit(client) },
-                        isExecutive && { label: "Delete", icon: Trash2, danger: true, onSelect: () => remove(client) },
-                      ]}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <ClientCards
+            clients={data.filter((c) => c.status === "active" || c.status === "in_house")}
+            onOpen={setSelected}
+            onEdit={editor.openEdit}
+            onRemove={remove}
+            isExecutive={isExecutive}
+          />
+          {data.some((c) => c.status !== "active" && c.status !== "in_house") && (
+            <>
+              <h2 className="section-heading">Onboarding and paused</h2>
+              <ClientCards
+                clients={data.filter((c) => c.status !== "active" && c.status !== "in_house")}
+                onOpen={setSelected}
+                onEdit={editor.openEdit}
+                onRemove={remove}
+                isExecutive={isExecutive}
+              />
+            </>
+          )}
+        </>
       )}
       </>}{editor.element}{data?.find(c=>c.id===selected)&&<ClientDetail client={data.find(c=>c.id===selected)!} onClose={()=>setSelected(null)}/>}
     </div>

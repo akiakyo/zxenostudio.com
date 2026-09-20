@@ -28,6 +28,10 @@ function equals(column: string, check?: (value: string) => boolean) {
     !check || check(value) ? `${column} = ${p.add(value)}` : "false";
 }
 
+/* the kind of work a project is; "code" is assigned by the database and is
+   deliberately not editable, so it stays stable once people start quoting it */
+const PROJECT_KINDS = ["video","poster","web","doc","social","photo","other"] as const;
+
 const PROJECT_STATUSES = [
   "planning",
   "active",
@@ -58,7 +62,9 @@ export const clients: Resource = {
     palette: { kind: 'text', label: 'Brand colours' },
   },
   select: `t.*, ${authorName},
-    (SELECT count(*)::int FROM admin_projects p WHERE p.client_id = t.id) AS project_count`,
+    (SELECT count(*)::int FROM admin_projects p WHERE p.client_id = t.id) AS project_count,
+    (SELECT count(*)::int FROM admin_projects p
+      WHERE p.client_id = t.id AND p.archived_at IS NULL AND p.status <> 'completed') AS active_project_count`,
   joins: author,
   order: "lower(t.name)",
   filters: { q: search("t.name", "t.company", "t.email") },
@@ -77,6 +83,7 @@ export const projects: Resource = {
     description: { kind: "longtext", label: "Description" },
     status: { kind: "enum", label: "Status", values: PROJECT_STATUSES },
     progress: { kind: "int", label: "Progress", min: 0, max: 100 },
+    kind: { kind: 'enum', label: 'Type', values: PROJECT_KINDS },
     lead: { kind: 'user', label: 'Project lead' },
     team: { kind: 'users', label: 'Project team' },
     budget: { kind: 'money', label: 'Budget' },

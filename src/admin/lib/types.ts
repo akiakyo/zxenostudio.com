@@ -29,6 +29,7 @@ type Authored = {
 };
 
 export type Client = Authored & {
+  activeProjectCount: number;
   status: string;
   owner: string | null;
   agreement: string;
@@ -50,7 +51,11 @@ export type ProjectStatus =
   | "review"
   | "completed";
 
+export type ProjectKind = "video" | "poster" | "web" | "doc" | "social" | "photo" | "other";
+
 export type Project = Authored & {
+  code: string;
+  kind: ProjectKind;
   lead: string | null;
   team: string[];
   budget: number | null;

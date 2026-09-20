@@ -119,8 +119,10 @@ test('the chat log, the draft and the scroll position survive searching and filt
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  for(const body of ['first note','second note','third note']) await request('chat','POST',{body,channel:'general'},'member.test');
  await mount(page,'/chat');
- const draft=page.getByLabel('Message the studio');const search=page.getByRole('searchbox',{name:'Search messages'});
+ const draft=page.getByLabel('Message #general');
  await expect(page.getByText('third note')).toBeVisible();
+ await page.getByRole('button',{name:'Search messages'}).click();
+ const search=page.getByRole('searchbox',{name:/Search #general/});
  await draft.fill('still being written');
  /* the search box narrows the same conversation: it must never tear the log down */
  for(const key of ['s','e','c']){for(let i=0;i<4;i++){await page.waitForTimeout(90);expect(await page.locator('article.chat-message').count()).toBeGreaterThan(0);}await search.press(key);}
@@ -155,8 +157,30 @@ test('presence shows on the team directory and the dashboard',async({page})=>{
  await mount(page,'/team');
  await expect(page.locator('.presence-dot.is-shoot').first()).toBeVisible();
  await page.goto('/');
- await expect(page.getByRole('heading',{name:'Studio today'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:"Who's in"})).toBeVisible();
  await expect(page.locator('.presence-grid .presence-person').first()).toBeVisible();
  await expect(page.locator('.presence-legend')).toContainText('on shoot');
+ expect(errors).toEqual([]);
+});
+test('projects get a stable code and a work type',async()=>{
+ const first=await create('projects',{name:'Coded project',kind:'video'});
+ expect(first.code).toMatch(/^PJ-\d{3,}$/);
+ expect(first.kind).toBe('video');
+ const second=await create('projects',{name:'Second coded project'});
+ expect(second.kind).toBe('other'); // the default, not a guess
+ expect(second.code).not.toBe(first.code);
+ expect((await request(`projects?id=${first.id}`,'PATCH',{kind:'not-a-type'})).status).toBe(400);
+ expect((await request(`projects?id=${first.id}`,'PATCH',{name:'Renamed'})).data.code).toBe(first.code); // editing never moves it
+ expect((await request('projects')).data.every((p:any)=>/^PJ-\d{3,}$/.test(p.code))).toBeTruthy();
+});
+test('the board shows codes, types and client marks',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ const client=await create('clients',{name:'Kape Studios',industry:'Food & Beverage',palette:'#3E2C1C'});
+ const project=await create('projects',{name:'Kape Q4 Launch Kit',clientId:client.id,kind:'poster',status:'active',progress:50});
+ await mount(page,'/projects?view=board');
+ await expect(page.getByRole('heading',{name:'Projects',exact:true})).toBeVisible();
+ await expect(page.getByText(project.code,{exact:true})).toBeVisible();
+ await expect(page.getByText('Poster',{exact:true}).first()).toBeVisible();
+ await expect(page.getByRole('link',{name:'Kape Q4 Launch Kit'})).toBeVisible();
  expect(errors).toEqual([]);
 });

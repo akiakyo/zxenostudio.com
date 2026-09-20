@@ -8,6 +8,7 @@ import {
   type ComponentType,
   type FormEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import {
   ChevronsDown,
@@ -26,6 +27,9 @@ import {
   Users,
   Pin,
   Paperclip,
+  Hash,
+  Search,
+  PanelLeft,
   X,
 } from "lucide-react";
 import { api, del, post, query, useApi } from "../lib/api";
@@ -56,18 +60,15 @@ const POLL_MS = 3000;
    a poll ran is never missed; merging by id makes the overlap harmless */
 const OVERLAP_MS = 5000;
 const GROUP_MS = 5 * 60 * 1000;
-/* Must match CHANNELS in api/_lib/chat.ts. */
-const CHANNELS = [
-  "general",
-  "wins",
-  "random",
-  "briefs",
-  "in-production",
-  "reviews",
-  "design",
-  "production",
-  "dev",
+/* How the studio groups its rooms. CHANNELS is derived from this so the rail
+   and the list the API accepts can never drift apart. Must match CHANNELS in
+   api/_lib/chat.ts. */
+const CHANNEL_GROUPS = [
+  { group: "Studio", channels: ["general", "wins", "random"] },
+  { group: "Project lifecycle", channels: ["briefs", "in-production", "reviews"] },
+  { group: "Departments", channels: ["design", "production", "dev"] },
 ];
+const CHANNELS = CHANNEL_GROUPS.flatMap((g) => g.channels);
 
 function merge(current: ChatMessage[], incoming: ChatMessage[]) {
   const byId = new Map(current.map((m) => [m.id, m]));
@@ -124,24 +125,162 @@ function MessageBody({ text }: { text: string }) {
 }
 
 export function ChatPage() {
-  const {search}=useLocation();const {team}=useWorkspace();
-  const channel=search.get('channel')||'general',recipient=search.get('dm')||'';
-  const conversations=useApi<{conversation:string;unread:number}[]>(`chat-conversations?channel=${channel}&recipient=${encodeURIComponent(recipient)}`);
-  useEffect(()=>{const t=setInterval(()=>{if(!document.hidden)conversations.reload();},10000);return()=>clearInterval(t);},[conversations.reload]);
-  const unread=(c:string)=>{const count=conversations.data?.find(r=>r.conversation===c)?.unread;return count?` (${count} unread)`:'';};
-  const [text,setText]=useState(''),[pins,setPins]=useState(false);const q=useDebounced(text);
+  const { search } = useLocation();
+  const { team, session } = useWorkspace();
+  const channel = search.get("channel") || "general";
+  const recipient = search.get("dm") || "";
+  const conversations = useApi<{ conversation: string; unread: number }[]>(
+    `chat-conversations?channel=${channel}&recipient=${encodeURIComponent(recipient)}`,
+  );
+  const reloadConversations = conversations.reload;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!document.hidden) reloadConversations();
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [reloadConversations]);
+  const unread = (key: string) =>
+    conversations.data?.find((r) => r.conversation === key)?.unread ?? 0;
+
+  const [text, setText] = useState("");
+  const [pins, setPins] = useState(false);
+  const [rail, setRail] = useState(false);
+  const q = useDebounced(text);
   /* what to do when a message would be hidden by the filter that is on */
-  const clearFilters=useCallback(()=>{setText('');setPins(false);},[]);
-  return <><div className="toolbar hq-chat-toolbar"><label>Conversation <select aria-label="Conversation" value={recipient?`dm:${recipient}`:channel} onChange={e=>{setText('');setPins(false);const v=e.target.value;navigate(v.startsWith('dm:')?`/chat?dm=${encodeURIComponent(v.slice(3))}`:`/chat?channel=${v}`);}}>
-   <optgroup label="Channels">{CHANNELS.map(c=><option key={c} value={c}>#{c}{unread(c)}</option>)}</optgroup><optgroup label="Direct messages">{team.map(m=><option key={m.username} value={`dm:${m.username}`}>{m.name}{unread(`dm:${m.username}`)}</option>)}</optgroup>
-  </select></label><SearchInput value={text} onChange={setText} placeholder="Search messages"/><Button size="sm" icon={Pin} aria-pressed={pins} onClick={()=>setPins(!pins)}>{pins?'All messages':'Pinned messages'}</Button></div>
-  {/* keyed on the conversation alone: typing in the search box or turning the pinned
-     filter on changes what is shown, it must never throw away the loaded log,
-     the unsent draft or the scroll position */}
-  <Conversation key={`${channel}:${recipient}`} channel={channel} recipient={recipient} q={q} pins={pins} onFilterMiss={clearFilters}/></>;
+  const clearFilters = useCallback(() => {
+    setText("");
+    setPins(false);
+  }, []);
+
+  /* a different conversation starts clean: no leftover search or pin filter */
+  function open(to: string) {
+    setText("");
+    setPins(false);
+    setRail(false);
+    navigate(to);
+  }
+
+  const mates = team.filter((m) => m.username !== session.username);
+
+  return (
+    <div className={`chat-shell ${rail ? "rail-open" : ""}`}>
+      <nav className="chat-rail" aria-label="Conversations">
+        {CHANNEL_GROUPS.map((group) => (
+          <div className="chat-rail-group" key={group.group}>
+            <h2>{group.group}</h2>
+            <ul>
+              {group.channels.map((name) => (
+                <li key={name}>
+                  <RailItem
+                    current={!recipient && channel === name}
+                    unread={unread(name)}
+                    onClick={() => open(`/chat?channel=${name}`)}
+                    icon={<Hash size={15} aria-hidden />}
+                    name={name}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <div className="chat-rail-group">
+          <h2>Direct messages</h2>
+          <ul>
+            {mates.map((m) => (
+              <li key={m.username}>
+                <RailItem
+                  current={recipient === m.username}
+                  unread={unread(`dm:${m.username}`)}
+                  onClick={() => open(`/chat?dm=${encodeURIComponent(m.username)}`)}
+                  icon={<Avatar name={m.name || m.username} size={20} status={m.workStatus} />}
+                  name={(m.name || m.username).split(" ")[0]}
+                />
+              </li>
+            ))}
+            {!mates.length && <li className="chat-rail-empty">Nobody else on the team yet.</li>}
+          </ul>
+        </div>
+      </nav>
+      <button
+        type="button"
+        className="chat-rail-scrim"
+        aria-label="Close conversations"
+        tabIndex={-1}
+        onClick={() => setRail(false)}
+      />
+      {/* keyed on the conversation alone: typing in the search box or turning the pinned
+         filter on changes what is shown, it must never throw away the loaded log,
+         the unsent draft or the scroll position */}
+      <Conversation
+        key={`${channel}:${recipient}`}
+        channel={channel}
+        recipient={recipient}
+        q={q}
+        pins={pins}
+        searchText={text}
+        onSearch={setText}
+        onTogglePins={() => setPins(!pins)}
+        onFilterMiss={clearFilters}
+        onToggleRail={() => setRail(!rail)}
+      />
+    </div>
+  );
 }
 
-function Conversation({channel,recipient,q,pins,onFilterMiss}:{channel:string;recipient:string;q:string;pins:boolean;onFilterMiss:()=>void}) {
+function RailItem({
+  current,
+  unread,
+  onClick,
+  icon,
+  name,
+}: {
+  current: boolean;
+  unread: number;
+  onClick: () => void;
+  icon: ReactNode;
+  name: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={`chat-rail-item ${current ? "is-current" : ""}`}
+      aria-current={current ? "page" : undefined}
+      onClick={onClick}
+    >
+      {icon}
+      <span className="chat-rail-name">{name}</span>
+      {unread > 0 && (
+        <span className="chat-rail-badge">
+          {unread > 99 ? "99+" : unread}
+          <span className="sr-only"> unread</span>
+        </span>
+      )}
+    </button>
+  );
+}
+
+function Conversation({
+  channel,
+  recipient,
+  q,
+  pins,
+  searchText,
+  onSearch,
+  onTogglePins,
+  onFilterMiss,
+  onToggleRail,
+}: {
+  channel: string;
+  recipient: string;
+  q: string;
+  pins: boolean;
+  searchText: string;
+  onSearch: (value: string) => void;
+  onTogglePins: () => void;
+  onFilterMiss: () => void;
+  onToggleRail: () => void;
+}) {
+  const [searchOpen, setSearchOpen] = useState(false);
   const scope={channel,recipient,q,pinned:pins?1:null};
   const matchesFilter=(message:ChatMessage)=>
     (!q||message.body.toLowerCase().includes(q.toLowerCase()))&&(!pins||message.pinned);
@@ -388,8 +527,16 @@ function Conversation({channel,recipient,q,pins,onFilterMiss}:{channel:string;re
   return (
     <div className={`chat ${showMembers ? "with-members" : ""}`}>
       <header className="chat-head">
+        <button
+          type="button"
+          className="icon-btn chat-rail-toggle"
+          aria-label="Show conversations"
+          onClick={onToggleRail}
+        >
+          <PanelLeft size={18} aria-hidden />
+        </button>
         <div className="chat-title">
-          <h1>{recipient?memberName(recipient):channel==='general'?'Studio chat':`#${channel}`}</h1>
+          <h1>{recipient ? memberName(recipient) : `#${channel}`}</h1>
           <span>
             {members.length} members · <span className="online-count">{online.length} online</span>
           </span>
@@ -401,17 +548,41 @@ function Conversation({channel,recipient,q,pins,onFilterMiss}:{channel:string;re
             ))}
             {online.length > 3 && <span className="avatar-more">+{online.length - 3}</span>}
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            aria-expanded={showMembers}
+          <IconButton
+            icon={Pin}
+            label={pins ? "Show all messages" : "Show pinned messages"}
+            aria-pressed={pins}
+            onClick={onTogglePins}
+          />
+          <IconButton
+            icon={Users}
+            label="Members"
+            aria-pressed={showMembers}
             aria-controls="chat-members"
             onClick={() => setShowMembers(!showMembers)}
-          >
-            <Users size={15} aria-hidden /> Members
-          </button>
+          />
+          <IconButton
+            icon={Search}
+            label="Search messages"
+            aria-pressed={searchOpen}
+            onClick={() => {
+              /* closing the box clears the filter, so the log is never left
+                 narrowed by a search the person can no longer see */
+              if (searchOpen) onSearch("");
+              setSearchOpen(!searchOpen);
+            }}
+          />
         </div>
       </header>
+      {searchOpen && (
+        <div className="chat-search">
+          <SearchInput
+            value={searchText}
+            onChange={onSearch}
+            placeholder={recipient ? "Search this conversation" : `Search #${channel}`}
+          />
+        </div>
+      )}
 
       <div className="chat-body">
         <div className="chat-main">
@@ -552,14 +723,16 @@ function Conversation({channel,recipient,q,pins,onFilterMiss}:{channel:string;re
           <form className="chat-composer" onSubmit={send}>
             <IconButton icon={Paperclip} label="Attach asset link" onClick={()=>setAttach(true)}/>
             <IconButton icon={SmilePlus} label="Insert emoji" onClick={()=>{setDraft(d=>d+' 👍');inputRef.current?.focus();}}/>
-            <label htmlFor="chat-input" className="sr-only">Message the studio</label>
+            <label htmlFor="chat-input" className="sr-only">
+              {recipient ? `Message ${memberName(recipient)}` : `Message #${channel}`}
+            </label>
             <textarea
               id="chat-input"
               ref={inputRef}
               rows={1}
               value={draft}
               maxLength={4000}
-              placeholder="Message the studio"
+              placeholder={recipient ? `Message ${memberName(recipient)}` : `Message #${channel}`}
               onChange={(e) => {
                 setDraft(e.target.value);
                 e.target.style.height = "auto";

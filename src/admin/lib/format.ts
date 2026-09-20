@@ -96,6 +96,15 @@ export function money(amount: number | null | undefined): string {
   return amount === null || amount === undefined ? "—" : peso.format(amount);
 }
 
+/* Short form for tiles, where the exact centavo is noise: the full figure is
+   always a click away on the page the tile links to. */
+export function moneyShort(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return "—";
+  if (Math.abs(amount) >= 1_000_000) return `₱${(amount / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(amount) >= 1_000) return `₱${Math.round(amount / 1_000)}k`;
+  return `₱${Math.round(amount)}`;
+}
+
 export function initials(name: string, fallback = "?"): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return fallback;
@@ -105,6 +114,7 @@ export function initials(name: string, fallback = "?"): string {
 
 export const LABELS: Record<string, string> = {
   studio:'In studio',remote:'Remote',off:'Off',
+  poster:'Poster', web:'Web', doc:'Document', social:'Social', photo:'Photo',
   pending:'Pending', revision:'Needs revision', declined:'Declined', cancelled:'Cancelled',
   event:'Event', meeting:'Meeting', shoot:'Shoot', internal:'Internal', deadline:'Deadline',
   lead:'Lead', discovery:'Discovery', proposal:'Proposal', negotiation:'Negotiation', won:'Won', lost:'Lost',

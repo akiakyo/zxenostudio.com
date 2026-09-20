@@ -67,6 +67,7 @@ const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1);
 export const PROJECT_FIELDS: FieldDef[] = [
   { name: "name", label: "Project name", type: "text", required: true, wide: true },
   { name: "clientId", label: "Client", type: "client" },
+  { name: 'kind', label: 'Type', type: 'select', noEmpty: true, options: options(['video','poster','web','doc','social','photo','other']) },
   { name: 'lead', label: 'Project lead', type: 'member' },
   { name: 'team', label: 'Project team', type: 'members' },
   { name: 'budget', label: 'Budget (PHP)', type: 'money' },

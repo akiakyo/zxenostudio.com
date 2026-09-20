@@ -1,6 +1,6 @@
 // The studio's admin accounts and the schema loader, shared by
 // scripts/seed-admins.ts and local tests.
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 export type Member = {
   username: string;
@@ -81,10 +81,16 @@ export const MEMBERS: Member[] = [
 
 /* Splits db/schema.sql into statements for drivers that run one at a time. */
 export function schemaStatements(): string[] {
-  const schema = readFileSync(
-    new URL("../db/schema.sql", import.meta.url),
-    "utf8",
-  ) + '\n' + readFileSync(new URL('../db/migrations/20260920-studio-hq.sql', import.meta.url), 'utf8');
+  /* the base schema, then every checked-in migration oldest first, so a new
+     migration file just needs to be dropped into db/migrations. */
+  const dir = new URL("../db/migrations/", import.meta.url);
+  const schema = [
+    readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8"),
+    ...readdirSync(dir)
+      .filter((name) => name.endsWith(".sql"))
+      .sort()
+      .map((name) => readFileSync(new URL(name, dir), "utf8")),
+  ].join("\n");
   return schema
     .replace(/--.*$/gm, "")
     .split(";")

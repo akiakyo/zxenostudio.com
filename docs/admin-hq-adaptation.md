@@ -4,23 +4,27 @@ The client's `zxeno-hq_2.html` provides functional reference. The admin retains 
 
 | Prototype capability | Admin integration |
 | --- | --- |
-| Dashboard summaries | Existing dashboard plus review queue, project stages, capacity and studio/room status |
-| Project board, list and timeline | Additional Projects tabs; keyboard status selectors alongside drag/drop |
+| Dashboard summaries | Greeting, headline counts, on-time delivery, stat strip, work due this week, today's schedule, pipeline bar, workload, who is in and the review queue, above the existing panels |
+| Project board, list and timeline | Additional Projects tabs; keyboard status selectors alongside drag/drop; board cards carry a project code, work type, client mark, progress, team and due date |
 | Project owners, teams and budgets | Existing project editor and project detail, with spend from recorded expenses |
 | Tasks and milestones | Existing persistent task lists, board, calendar and milestone actions |
 | Week calendar and agenda | Existing calendar plus date-specific events, attendees, Manila times and room/location |
-| Channels and direct messages | Existing Studio chat, channel selector, participant-only DMs, unread counts, polling, message search, pinning, reactions and asset links |
+| Channels and direct messages | Chat with a grouped channel rail, participant-only DMs, per-conversation unread badges, polling, message search, pinning, reactions and asset links |
 | Approvals | New review queue, assigned reviewers, explicit revision/approval states, resubmission versions, image pins, comments, image/video previews |
 | Assets | Existing library plus folders, list view, previews, file-size metadata and actual clipboard links |
-| Clients and pipeline | Existing client table plus details, account owners, industry, agreement, palette and pipeline board/editors |
+| Clients and pipeline | Client cards with the client's own mark, industry, status and live project count, split into active and onboarding/paused; plus details, account owners, agreement, palette and pipeline board/editors |
 | Finance | Cash-basis YTD revenue from paid invoices, monthly comparison, expense categories, outstanding and overdue totals |
-| Team | Existing directory plus departments, work status and DM links; workload and leave sections |
+| Team | Directory grouped by department with presence and DM links, sharing one tab strip with workload and leave |
 | Handbook | Searchable, editable documents; executives publish and edit, members read |
 | Global tools | Search (Ctrl/Cmd K), quick creation and per-user notification read state; existing theme settings retained |
 | Sidebar counts | Unread chat and pending approval counts on the sidebar, scoped to what each person may act on |
 | Presence | Work-status dot on avatars, a who-is-in grid on the dashboard and a status legend |
 
-Trend sparklines on the prototype's tiles are not reproduced: they were hardcoded arrays. Showing them truthfully needs recorded history, which the workspace does not yet keep.
+Sparklines are drawn only where real history exists: money actually received per month, and tasks by the day they fall due. Where the workspace keeps no history, such as how many projects were active last week, no line is drawn rather than inventing one. A flat or single-point series draws nothing.
+
+Project codes are assigned by the database from a sequence and are never editable, so a code stays put once people start quoting it. The sequence advances past the highest code in use, so deleting a project does not hand its code to the next one.
+
+The board keeps the workspace's five statuses, including On hold, rather than the prototype's four. The prototype simply used a different status set; the live records did not change.
 
 ## Permissions and persistence
 

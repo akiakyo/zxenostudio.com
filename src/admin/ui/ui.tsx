@@ -134,6 +134,56 @@ export function Avatar({
   );
 }
 
+/* A client's mark: their initials on their own brand colour when they have
+   one recorded, otherwise the same stable hue trick the avatars use. */
+export function ClientMark({
+  name,
+  palette,
+  size = 32,
+}: {
+  name: string | null | undefined;
+  palette?: string | null;
+  size?: number;
+}) {
+  const text = (name ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+  const brand = (palette ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .find((value) => /^#[0-9a-f]{6}$/i.test(value));
+  let hash = 0;
+  for (const char of name ?? "") hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  /* readable text on whatever colour the client picked */
+  const ink = brand
+    ? (parseInt(brand.slice(1, 3), 16) * 299 +
+         parseInt(brand.slice(3, 5), 16) * 587 +
+         parseInt(brand.slice(5, 7), 16) * 114) /
+        1000 >
+      140
+      ? "#0f1e09"
+      : "#ffffff"
+    : undefined;
+  return (
+    <span
+      className={`client-mark ${brand ? "has-brand" : ""}`}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.4,
+        ...(brand ? { background: brand, color: ink } : { ["--hue" as string]: hash % 360 }),
+      }}
+      aria-hidden="true"
+    >
+      {text}
+    </span>
+  );
+}
+
 export function PageHeader({
   title,
   description,

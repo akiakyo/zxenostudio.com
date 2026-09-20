@@ -85,20 +85,7 @@ export function DashboardPage() {
 
   return (
     <div className="page">
-      <header className="hello">
-        <div>
-          <p className="hello-date">
-            {formatDate(todayIso(), { weekday: true, year: true })}
-          </p>
-          <h1>
-            {greeting()}, {firstName}.
-          </h1>
-          <div className="hello-role">
-            <span className="role-pill">{session.title}</span>
-            {isExecutive && <Badge tone="green">Executive</Badge>}
-          </div>
-        </div>
-      </header>
+      <DashboardSummary />
 
       <section className="quick-actions" aria-label="Quick actions">
         <button type="button" className="quick-action" onClick={() => projectEditor.openNew({ status: "planning" })}>
@@ -129,14 +116,6 @@ export function DashboardPage() {
 
       {data && (
         <>
-          <section className="stats" aria-label="At a glance">
-            <Stat icon={FolderKanban} label="Active projects" value={data.stats.activeProjects} to="/projects" />
-            <Stat icon={ListChecks} label="My open tasks" value={data.stats.myOpenTasks} to="/tasks/mine" />
-            <Stat icon={TriangleAlert} label="My overdue tasks" value={data.stats.myOverdueTasks} to="/tasks/mine" alert={data.stats.myOverdueTasks > 0} />
-            <Stat icon={CalendarClock} label="Due in 7 days" value={data.stats.dueThisWeek} to="/deadlines" />
-            <Stat icon={MessagesSquare} label="Open feedback" value={data.stats.openFeedback} to="/feedback" />
-          </section>
-
           <div className="dash-grid">
             <Panel
               title="My tasks"
@@ -281,7 +260,6 @@ export function DashboardPage() {
         </>
       )}
 
-      <DashboardSummary/>
       {projectEditor.element}
       {updateEditor.element}
       {noteEditor.element}

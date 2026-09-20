@@ -1,17 +1,17 @@
 import type { Session } from './auth.js';
 import { camelRow } from './crud.js';
-import { query, today } from './db.js';
+import { query, today as today_ } from './db.js';
 import { CHANNELS } from './chat.js';
 import { HttpError, isExecutive } from './http.js';
 
 export async function finance(search:URLSearchParams){
- const year=search.get('year')||today().slice(0,4);
+ const year=search.get('year')||today_().slice(0,4);
  if(!/^\d{4}$/.test(year)||Number(year)<2000||Number(year)>2100)throw new HttpError(400,'Choose a year from 2000 to 2100');
- const from=`${year}-01-01`,to=year===today().slice(0,4)?today():`${year}-12-31`;
+ const from=`${year}-01-01`,to=year===today_().slice(0,4)?today_():`${year}-12-31`;
  const [revenue,expenses,outstanding,breakdown]=await Promise.all([
   query(`SELECT substring(paid_date,1,7) AS month, sum(amount)::float8 AS amount FROM admin_invoices WHERE status='paid' AND paid_date BETWEEN $1 AND $2 GROUP BY 1`,[from,to]),
   query(`SELECT substring(date,1,7) AS month, sum(amount)::float8 AS amount FROM admin_expenses WHERE date BETWEEN $1 AND $2 GROUP BY 1`,[from,to]),
-  query(`SELECT coalesce(sum(amount),0)::float8 AS amount, coalesce(sum(amount) FILTER (WHERE due_date < $1),0)::float8 AS overdue FROM admin_invoices WHERE status='sent'`,[today()]),
+  query(`SELECT coalesce(sum(amount),0)::float8 AS amount, coalesce(sum(amount) FILTER (WHERE due_date < $1),0)::float8 AS overdue FROM admin_invoices WHERE status='sent'`,[today_()]),
   query(`SELECT category, sum(amount)::float8 AS amount FROM admin_expenses WHERE date BETWEEN $1 AND $2 GROUP BY category ORDER BY sum(amount) DESC`,[from,to]),
  ]);
  const months=Array.from({length:12},(_,i)=>{const month=`${year}-${String(i+1).padStart(2,'0')}`;return {month,revenue:Number(revenue.find(r=>r.month===month)?.amount??0),expenses:Number(expenses.find(r=>r.month===month)?.amount??0)};});
@@ -50,14 +50,50 @@ export async function badges(s:Session){
  return {chat:chat[0].n,approvals:approvals[0].n};
 }
 
+/* Everything the dashboard's top half needs, in one round trip. Series are
+   real history only: money actually received, and tasks by the day they are
+   due. Nothing here is invented to make a line look busy. */
+export async function overview(s:Session){
+ const [onTime,revenue,taskDays,dueSoon,today,approvals]=await Promise.all([
+  query(`SELECT count(*) FILTER (WHERE status='completed')::int AS delivered, count(*)::int AS total
+    FROM admin_projects WHERE archived_at IS NULL`),
+  query(`SELECT substring(paid_date,1,7) AS month, sum(amount)::float8 AS amount
+    FROM admin_invoices WHERE status='paid' AND paid_date >= to_char(now() - interval '11 months','YYYY-MM') || '-01'
+    GROUP BY 1 ORDER BY 1`),
+  query(`SELECT d::date::text AS day, (SELECT count(*)::int FROM admin_tasks t
+      WHERE NOT t.is_private AND t.status <> 'done' AND t.due_date = d::date::text) AS count
+    FROM generate_series(($1::date - interval '6 days')::date, $1::date, interval '1 day') AS d`,[today_()]),
+  query(`SELECT p.id::text, p.name, p.status, p.due_date, c.name AS client_name
+    FROM admin_projects p LEFT JOIN admin_clients c ON c.id = p.client_id
+    WHERE p.archived_at IS NULL AND p.status <> 'completed'
+      AND p.due_date IS NOT NULL AND p.due_date <= to_char($1::date + interval '7 days','YYYY-MM-DD')
+    ORDER BY p.due_date LIMIT 6`,[today_()]),
+  query(`SELECT id::text, title, start_time, end_time, kind, location
+    FROM admin_events WHERE date = $1 ORDER BY start_time`,[today_()]),
+  query(`SELECT count(*)::int AS n FROM admin_approvals WHERE status='pending'`),
+ ]);
+ const month=today_().slice(0,7);
+ return {
+  today: today_(),
+  onTime: onTime[0],
+  revenue: { month, mtd: Number(revenue.find(r=>r.month===month)?.amount ?? 0), series: revenue.map(r=>Number(r.amount)) },
+  tasksDue: { count: taskDays.reduce((n,r)=>n+Number(r.count),0), series: taskDays.map(r=>Number(r.count)) },
+  overdueTasks: (await query(`SELECT count(*)::int AS n FROM admin_tasks
+    WHERE NOT is_private AND status <> 'done' AND due_date IS NOT NULL AND due_date <= $1`,[today_()]))[0].n,
+  approvals: approvals[0].n,
+  dueThisWeek: dueSoon.map(camelRow),
+  schedule: today.map(camelRow),
+ };
+}
+
 export async function summary(s:Session){
  const [approvals,projects,workload,people]=await Promise.all([
   query(`SELECT id,title,status,due_date FROM admin_approvals WHERE status='pending' ORDER BY due_date NULLS LAST LIMIT 5`),
   query(`SELECT status,count(*)::int AS count,coalesce(avg(progress),0)::float8 AS progress FROM admin_projects WHERE archived_at IS NULL GROUP BY status`),
-  query(`SELECT c.*,u.name FROM admin_capacity c JOIN admin_users u ON u.username=c.member WHERE week_of=date_trunc('week',$1::date)::date::text ORDER BY c.hours::float/c.available DESC LIMIT 5`,[today()]),
+  query(`SELECT c.*,u.name FROM admin_capacity c JOIN admin_users u ON u.username=c.member WHERE week_of=date_trunc('week',$1::date)::date::text ORDER BY c.hours::float/c.available DESC LIMIT 5`,[today_()]),
   query(`SELECT work_status,count(*)::int AS count FROM admin_users GROUP BY work_status`),
  ]);
  const clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
- const rooms=await query(`SELECT title,location,start_time,end_time FROM admin_events WHERE date=$1 AND start_time<=$2 AND end_time>$2 AND location<>'' ORDER BY start_time`,[today(),clock]);
+ const rooms=await query(`SELECT title,location,start_time,end_time FROM admin_events WHERE date=$1 AND start_time<=$2 AND end_time>$2 AND location<>'' ORDER BY start_time`,[today_(),clock]);
  return {approvals:approvals.map(camelRow),projects,workload:workload.map(camelRow),people:people.map(camelRow),rooms:rooms.map(camelRow)};
 }

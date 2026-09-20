@@ -74,7 +74,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     group: "Overview",
     items: [
       { path: "/", label: "Dashboard", icon: LayoutDashboard, page: DashboardPage },
-      { path: "/chat", label: "Studio chat", icon: MessageCircle, page: ChatPage, badge: { key: "chat", noun: "unread" } },
+      { path: "/chat", label: "Chat", icon: MessageCircle, page: ChatPage, badge: { key: "chat", noun: "unread" } },
       { path: "/announcements", label: "Announcements", icon: Megaphone, page: AnnouncementsPage },
       { path: "/activity", label: "Activity feed", icon: Activity, page: ActivityPage },
     ],
@@ -118,7 +118,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Team",
     items: [
-      { path: "/team", label: "Team directory", icon: Users, page: TeamPage },
+      { path: "/team", label: "Team", icon: Users, page: TeamPage },
       { path: '/workload', label: 'Workload', icon: Columns3, page: WorkloadPage },
       { path: '/leave', label: 'Leave', icon: CalendarDays, page: LeavePage },
       { path: "/executives", label: "Executives", icon: Crown, page: ExecutivesPage, executiveOnly: true },
