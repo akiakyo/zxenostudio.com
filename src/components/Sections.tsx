@@ -322,6 +322,7 @@ function LanyardCard({
           </span>
           <span className="lanyard-face lanyard-back">
             <span className="eyebrow lanyard-back-label">Tech stack</span>
+            {!member.techStack.length && <p>Not listed yet.</p>}
             <ul className="member-tags">
               {member.techStack.map((tool, tagIndex) => (
                 <li key={tool} style={{ "--tag-i": tagIndex } as CSSProperties}>

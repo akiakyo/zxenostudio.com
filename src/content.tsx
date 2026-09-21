@@ -157,7 +157,7 @@ export const team = [
   },
   {
     name: "Aquio Fulgencio",
-    role: "Software Engineer / Full Stack Developer",
+    role: "CTO / Software Engineer",
     techStack: [
       "C++",
       "Python",
@@ -219,6 +219,11 @@ export const team = [
     name: "Karl Emanuel",
     role: "Video Editor / Motion Designer",
     techStack: ["Photoshop", "After Effects", "DaVinci Resolve"],
+  },
+  {
+    name: "Kenjie Villacorta",
+    role: "Editor / Motion Designer",
+    techStack: [],
   },
   {
     name: "V1nks",

@@ -130,7 +130,7 @@ function Login({ onSignedIn }: { onSignedIn: (session: Session | null) => void }
       <ParticleField />
       <form className="auth-card" onSubmit={submit}>
         <AuthBrand />
-        <h1 className="sr-only">Sign in to ZXENO Studio admin</h1>
+        <h1 className="sr-only">Sign in to ZXENO HQ</h1>
         <div className="field">
           <label htmlFor="username">Username</label>
           <input id="username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required autoFocus />
@@ -157,7 +157,7 @@ function AuthBrand() {
     <div className="auth-brand">
       <Mark />
       <span>
-        ZXENO Studio <em>admin</em>
+        ZXENO <em>HQ</em>
       </span>
     </div>
   );

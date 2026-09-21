@@ -162,7 +162,7 @@ export function Shell() {
   useEffect(() => {
     setDrawer(false);
     window.scrollTo(0, 0);
-    document.title = `${route?.label ?? "Not found"} — ZXENO admin`;
+    document.title = `${route?.label ?? "Not found"} — ZXENO HQ`;
   }, [path, route?.label]);
 
   useEffect(() => {
@@ -219,7 +219,7 @@ export function Shell() {
         </button>
         <Link to="/" className="brand">
           <Mark />
-          ZXENO admin
+          ZXENO HQ
         </Link>
         <Link to="/settings" className="topbar-avatar" aria-label="Settings">
           <Avatar name={session.name || session.username} size={30} />
@@ -229,7 +229,7 @@ export function Shell() {
       <aside id="sidebar" className="sidebar" aria-label="Workspace">
         <Link to="/" className="brand sidebar-brand">
           <Mark />
-          ZXENO admin
+          ZXENO HQ
         </Link>
         <nav className="nav">
           {NAV.map((group) => {

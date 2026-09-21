@@ -9,7 +9,8 @@ dist
 # Camera masters that scripts/prepare-media.cjs transcodes into public/media/.
 # They are never read by the build, and one of them is over Vercel's 100 MB
 # per-file limit, so uploading them fails the deploy.
-assets
+# Anchor this to the source folder; public/assets contains deployed icons.
+/assets/
 
 # Local-only working files.
 reference-review

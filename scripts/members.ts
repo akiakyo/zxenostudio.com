@@ -38,7 +38,7 @@ export const MEMBERS: Member[] = [
   {
     username: "aquio.zxeno",
     name: "Aquio Fulgencio",
-    title: "Software Engineer / Full Stack Developer",
+    title: "CTO / Software Engineer",
     access: "member",
   },
   {
@@ -75,6 +75,12 @@ export const MEMBERS: Member[] = [
     username: "neo.zxeno",
     name: "Neo Hapa",
     title: "Colorist / Video Editor",
+    access: "member",
+  },
+  {
+    username: "kenjie.zxeno",
+    name: "Kenjie Villacorta",
+    title: "Editor / Motion Designer",
     access: "member",
   },
 ];
