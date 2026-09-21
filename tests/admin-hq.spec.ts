@@ -281,7 +281,10 @@ test('announcement emails: the list, send to all, send to chosen addresses',asyn
   expect(calls.map(c=>c.url)).toEqual(['https://api.resend.com/emails','https://api.resend.com/emails']);
   expect(calls[0].headers.authorization).toBe('Bearer re_test_not_a_real_key');
   expect(calls.map(c=>c.body.to[0]).sort()).toEqual(['exec@example.com','member@example.com']); // one message each
-  const m=calls[0].body;expect(m.from).toBe('ZXENO Studio <announcement@zxenostudio.com>');
+  const m=calls.find(c=>c.body.to[0]==='member@example.com').body;
+  expect(m.from).toBe('exec · ZXENO Studio <announcement@zxenostudio.com>'); // from the person who posted
+  expect(m.reply_to).toEqual(['exec@example.com']);
+  expect(m.html).toContain('Hi member,');expect(m.text).toContain('Hi member,');
   expect(m.html).toContain('Studio &#60;closed&#62; Friday');
   expect(m.html).toContain('src="cid:zxeno-logo"');expect(m.attachments[0].content_id).toBe('zxeno-logo');expect(m.attachments[0].content.length).toBeGreaterThan(1000);
   const some=await request('announcement-send','POST',{id:a.id,to:['member@example.com','MEMBER@example.com','guest@example.org']});

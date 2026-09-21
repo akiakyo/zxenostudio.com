@@ -11,7 +11,6 @@ import { USERNAME_PATTERN } from "./users.js";
 
 const FROM =
   process.env.ANNOUNCEMENT_FROM ?? "ZXENO Studio <announcement@zxenostudio.com>";
-const SITE_URL = "https://zxenostudio.com";
 const ADMIN_URL = "https://admin.zxenostudio.com/announcements";
 /* sends go one per request, so keep a single send well inside a function run */
 const MAX_RECIPIENTS = 100;
@@ -59,7 +58,8 @@ export async function send(session: Session, body: Record<string, any>) {
   const id = body.id;
   if (typeof id !== "string" || !isUuid(id)) throw new HttpError(400, "Invalid request");
   const announcement = await one(
-    `SELECT a.title, a.body, a.created_at, u.name AS author, u.title AS author_title
+    `SELECT a.title, a.body, a.created_at, u.name AS author, u.title AS author_title,
+            u.email AS author_email
        FROM admin_announcements a
        LEFT JOIN admin_users u ON u.username = a.created_by
       WHERE a.id = $1`,
@@ -92,12 +92,21 @@ export async function send(session: Session, body: Record<string, any>) {
     throw new HttpError(400, `Send to ${MAX_RECIPIENTS} addresses or fewer at a time`);
   }
 
-  const message = render(announcement as Parameters<typeof render>[0]);
+  /* Written like a note from the person who posted, not a newsletter: their
+     name as the sender, replies to them, and each teammate greeted by name.
+     Gmail sorts on these signals, and this keeps it out of Promotions. */
+  const people = await query(`SELECT name, email FROM admin_users WHERE email <> ''`);
+  const nameOf = new Map(people.map((p) => [String(p.email).toLowerCase(), String(p.name)]));
+  const from = announcement.author
+    ? `${senderName(announcement.author)} · ZXENO Studio <${FROM.replace(/^.*<|>$/g, "")}>`
+    : FROM;
+  const replyTo = announcement.author_email ? [announcement.author_email] : undefined;
   let sent = 0;
   try {
     /* one request each, because Resend's batch endpoint can't carry the inline logo */
     for (const to of recipients) {
-      await resend({ from: FROM, to: [to], ...message });
+      const message = render(announcement as Parameters<typeof render>[0], nameOf.get(to.toLowerCase()));
+      await resend({ from, to: [to], ...(replyTo && { reply_to: replyTo }), ...message });
       sent++;
     }
   } catch (error) {
@@ -151,93 +160,82 @@ async function resend(message: Record<string, unknown>) {
   }
 }
 
+/* a display name can't carry the characters that delimit an address */
+const senderName = (name: string) => name.replace(/[<>"@,;:\\]/g, "").trim().slice(0, 60);
+
 const escape = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-/* Brand colours from src/tokens.css, written out because mail clients ignore
+/* A plain, letter-like message: mail from a colleague rather than a campaign.
+   Colours come from src/tokens.css, written out because mail clients ignore
    custom properties. */
 const INK = "#0f1e09";
-const BRAND = "#55a630";
-const BRAND_SOFT = "#e2edd6";
-const BRAND_DEEP = "#2f5e19";
-const GROUND = "#efeee8";
+const TEXT = "#2b3226";
 const MUTED = "#6b6f63";
-const LINE = "#e3e1d8";
+const LINK = "#2f5e19";
+const LINE = "#e6e4dc";
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-export function render(a: {
-  title: string;
-  body: string;
-  created_at: string | Date;
-  author: string | null;
-  author_title: string | null;
-}) {
+export function render(
+  a: {
+    title: string;
+    body: string;
+    created_at: string | Date;
+    author: string | null;
+    author_title: string | null;
+  },
+  recipientName?: string,
+) {
   const date = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Manila",
     month: "long",
     day: "numeric",
     year: "numeric",
   }).format(new Date(a.created_at));
-  const byline = a.author
-    ? `${a.author}${a.author_title ? ` · ${a.author_title}` : ""}`
-    : "ZXENO Studio";
+  const firstName = recipientName?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Hi ${firstName},` : "Hi team,";
   const body = a.body.trim();
-  /* the grey line inboxes show under the subject */
-  const preview = body.replace(/\s+/g, " ").slice(0, 140);
-  const paragraphs = body
-    .split(/\n{2,}/)
-    .map(
-      (p) =>
-        `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#2b3226">${escape(p).replace(/\n/g, "<br>")}</p>`,
-    )
+  /* skip the greeting if the message already opens with one */
+  const opensWithGreeting = /^(hi|hello|hey|good (morning|afternoon|evening)|dear)\b/i.test(body);
+  const signature = a.author
+    ? `${a.author}${a.author_title ? `\n${a.author_title}` : ""}\nZXENO Studio`
+    : "ZXENO Studio";
+  const paragraph = (p: string, style = "") =>
+    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${TEXT};${style}">${escape(p).replace(/\n/g, "<br>")}</p>`;
+  const paragraphs = [
+    ...(opensWithGreeting ? [] : [greeting]),
+    ...body.split(/\n{2,}/),
+  ]
+    .map((p) => paragraph(p))
     .join("");
 
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only">
 <title>${escape(a.title)}</title></head>
-<body style="margin:0;padding:0;background:${GROUND};-webkit-text-size-adjust:100%">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${GROUND}">${escape(preview)}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${GROUND}">
-<tr><td align="center" style="padding:32px 16px 40px">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px">
-    <tr><td style="padding:0 4px 20px">
-      <a href="${SITE_URL}" style="text-decoration:none"><img src="cid:zxeno-logo" width="150" alt="ZXENO Studio" style="display:block;border:0;width:150px;height:auto;color:${INK};font:700 20px ${FONT}"></a>
-    </td></tr>
-    <tr><td style="background:#ffffff;border:1px solid ${LINE};border-radius:16px;overflow:hidden">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="height:6px;background:${BRAND};font-size:0;line-height:0">&nbsp;</td></tr>
-        <tr><td style="padding:32px 36px 0;font-family:${FONT}">
-          <span style="display:inline-block;padding:5px 11px;border-radius:999px;background:${BRAND_SOFT};color:${BRAND_DEEP};font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Announcement</span>
-          <h1 style="margin:18px 0 10px;font-size:26px;line-height:1.25;font-weight:800;color:${INK};letter-spacing:-.01em">${escape(a.title)}</h1>
-          <p style="margin:0;font-size:13px;line-height:1.5;color:${MUTED}">${escape(byline)} &nbsp;·&nbsp; ${escape(date)}</p>
-        </td></tr>
-        <tr><td style="padding:24px 36px 0"><div style="height:1px;background:${LINE};font-size:0;line-height:0">&nbsp;</div></td></tr>
-        <tr><td style="padding:24px 36px 8px;font-family:${FONT}">${paragraphs}</td></tr>
-        <tr><td style="padding:0 36px 36px;font-family:${FONT}">
-          <a href="${ADMIN_URL}" style="display:inline-block;background:${BRAND};color:${INK};text-decoration:none;font-size:15px;font-weight:700;padding:13px 22px;border-radius:999px">Open in Studio HQ &rarr;</a>
-        </td></tr>
-      </table>
-    </td></tr>
-    <tr><td style="padding:24px 4px 0;font-family:${FONT};font-size:12px;line-height:1.6;color:${MUTED}">
-      <strong style="color:${INK}">ZXENO Studio</strong> &nbsp;·&nbsp; <a href="${SITE_URL}" style="color:${MUTED}">zxenostudio.com</a><br>
-      You're receiving this because you're on the ZXENO Studio team email list.
+<body style="margin:0;padding:0;background:#ffffff">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff">
+<tr><td style="padding:28px 20px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:${FONT}">
+    <tr><td style="padding:0 0 22px"><img src="cid:zxeno-logo" width="110" alt="ZXENO Studio" style="display:block;border:0;width:110px;height:auto;color:${INK};font:700 16px ${FONT}"></td></tr>
+    <tr><td>
+      <h1 style="margin:0 0 6px;font-size:20px;line-height:1.35;font-weight:700;color:${INK}">${escape(a.title)}</h1>
+      <p style="margin:0 0 22px;font-size:13px;color:${MUTED}">${escape(date)}</p>
+      ${paragraphs}
+      ${paragraph(signature, `margin-top:24px`)}
+      <p style="margin:0;padding-top:16px;border-top:1px solid ${LINE};font-size:13px;line-height:1.6;color:${MUTED}">Also posted on <a href="${ADMIN_URL}" style="color:${LINK}">Studio HQ</a>. Reply to this email to answer ${escape(a.author ? a.author.split(/\s+/)[0] : "the studio")} directly.</p>
     </td></tr>
   </table>
 </td></tr></table>
 </body></html>`;
 
-  const text = `ZXENO STUDIO · ANNOUNCEMENT
+  const text = `${a.title}
+${date}
 
-${a.title}
-${byline} · ${date}
+${opensWithGreeting ? "" : `${greeting}\n\n`}${body}
 
-${body}
+${signature}
 
-Open in Studio HQ: ${ADMIN_URL}
-
-ZXENO Studio · ${SITE_URL}
-You're receiving this because you're on the ZXENO Studio team email list.`;
+Also posted on Studio HQ: ${ADMIN_URL}`;
 
   return {
     subject: a.title,
