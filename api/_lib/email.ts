@@ -93,21 +93,17 @@ export async function send(session: Session, body: Record<string, any>) {
     throw new HttpError(400, `Send to ${MAX_RECIPIENTS} addresses or fewer at a time`);
   }
 
-  /* Written like a note from the person who posted, not a newsletter: their
-     name as the sender, replies to them, and each teammate greeted by name.
-     Gmail sorts on these signals, and this keeps it out of Promotions. */
+  /* Replies go to the person who posted, and each teammate is greeted by
+     name; both help Gmail file it under Primary rather than Promotions. */
   const people = await query(`SELECT name, email FROM admin_users WHERE email <> ''`);
   const nameOf = new Map(people.map((p) => [String(p.email).toLowerCase(), String(p.name)]));
-  const from = announcement.author
-    ? `${senderName(announcement.author)} · ZXENO Studio <${FROM.replace(/^.*<|>$/g, "")}>`
-    : FROM;
   const replyTo = announcement.author_email ? [announcement.author_email] : undefined;
   let sent = 0;
   try {
     /* one request each, because Resend's batch endpoint can't carry the inline logo */
     for (const to of recipients) {
       const message = render(announcement as Parameters<typeof render>[0], nameOf.get(to.toLowerCase()));
-      await resend({ from, to: [to], ...(replyTo && { reply_to: replyTo }), ...message });
+      await resend({ from: FROM, to: [to], ...(replyTo && { reply_to: replyTo }), ...message });
       sent++;
     }
   } catch (error) {
@@ -160,9 +156,6 @@ async function resend(message: Record<string, unknown>) {
     );
   }
 }
-
-/* a display name can't carry the characters that delimit an address */
-const senderName = (name: string) => name.replace(/[<>"@,;:\\]/g, "").trim().slice(0, 60);
 
 const escape = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);

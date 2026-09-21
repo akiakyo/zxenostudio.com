@@ -282,7 +282,7 @@ test('announcement emails: the list, send to all, send to chosen addresses',asyn
   expect(calls[0].headers.authorization).toBe('Bearer re_test_not_a_real_key');
   expect(calls.map(c=>c.body.to[0]).sort()).toEqual(['exec@example.com','member@example.com']); // one message each
   const m=calls.find(c=>c.body.to[0]==='member@example.com').body;
-  expect(m.from).toBe('exec · ZXENO Studio <announcement@zxenostudio.com>'); // from the person who posted
+  expect(m.from).toBe('ZXENO Studio <announcement@zxenostudio.com>');
   expect(m.reply_to).toEqual(['exec@example.com']);
   expect(m.html).toContain('Hi member,');expect(m.text).toContain('Hi member,');
   expect(m.html).toContain('Studio &#60;closed&#62; Friday');
