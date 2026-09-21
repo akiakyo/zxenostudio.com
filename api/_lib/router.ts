@@ -4,6 +4,7 @@
 import { json, requireSession, sameOrigin, type Session } from "./auth.js";
 import * as chat from "./chat.js";
 import * as crud from "./crud.js";
+import * as email from "./email.js";
 import { databaseError, HttpError, readBody } from "./http.js";
 import { RESOURCES } from "./resources.js";
 import * as views from "./views.js";
@@ -43,6 +44,8 @@ const VIEWS: Record<string, Partial<Record<string, Handler>>> = {
   "chat-reactions": {
     POST: async (s, r) => chat.toggleReaction(s, await readBody(r)),
   },
+  'announcement-emails': { GET: s=>email.list(s), PATCH: async(s,r)=>email.save(s,await readBody(r)) },
+  'announcement-send': { POST: async(s,r)=>email.send(s,await readBody(r)) },
   'chat-pins': { POST: async(s,r)=>chat.pin(s,await readBody(r)) },
   'chat-conversations': { GET: s=>chat.conversations(s) },
   presence: { POST: async(s,r)=>chat.heartbeat(s,await readBody(r)) },

@@ -1622,6 +1622,27 @@ a.stat:hover {
 .announcement.is-pinned {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
+.announcement-emailed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+.stack-form > .segmented {
+  justify-self: start;
+}
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.link-button:hover {
+  text-decoration: underline;
+}
 
 /* ---------- Projects ---------- */
 .project-head {

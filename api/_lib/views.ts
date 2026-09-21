@@ -2,7 +2,7 @@
    deadlines, the executive overview, the activity feed, the team and each
    person's own profile. */
 import type { Session } from "./auth.js";
-import { camelRow, isDate, isUuid, logActivity, parseFields } from "./crud.js";
+import { camelRow, EMAIL, isDate, isUuid, logActivity, parseFields } from "./crud.js";
 import { one, Params, query, today, type Row } from "./db.js";
 import { HttpError, requireExecutive } from "./http.js";
 import { USERNAME_PATTERN } from "./users.js";
@@ -341,7 +341,7 @@ export async function updateMember(
 
 export async function profile(session: Session) {
   const row = await one(
-    `SELECT username, name, title, access, phone, bio, department, work_status FROM admin_users
+    `SELECT username, name, title, access, phone, email, bio, department, work_status FROM admin_users
       WHERE username = $1`,
     [session.username],
   );
@@ -357,6 +357,7 @@ export async function updateProfile(
     {
       name: { kind: "text", label: "Name", required: true, max: 80 },
       phone: { kind: "text", label: "Phone", max: 40 },
+      email: { kind: "text", label: "Email", max: 200 },
       bio: { kind: "text", label: "Bio", max: 1000 },
       department: {kind:'text',label:'Department',max:80},
       workStatus: {kind:'enum',label:'Work status',values:['studio','remote','shoot','off']},
@@ -364,6 +365,11 @@ export async function updateProfile(
     body,
     "update",
   );
+  /* optional, so an empty value clears it; anything else must be an address */
+  const email = values.get("email");
+  if (typeof email === "string" && email && !EMAIL.test(email)) {
+    throw new HttpError(400, "Email must be an email address");
+  }
   if (values.size) {
     const p = new Params();
     const sets = [...values].map(

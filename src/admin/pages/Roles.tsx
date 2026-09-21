@@ -38,6 +38,7 @@ const PERMISSIONS: { area: string; member: string | boolean; executive: string |
   { area: "Briefs, feedback, meeting notes, assets", member: "Create all; delete their own", executive: "Create and delete all" },
   { area: "Weekly status updates", member: "Post; edit their own", executive: "Post; edit and delete all" },
   { area: "Post announcements", member: false, executive: true },
+  { area: "Email announcements and keep the email list", member: false, executive: true },
   { area: "Executive overview", member: false, executive: true },
   { area: "Change their own name, phone and bio", member: true, executive: true },
   { area: "Change member roles and access", member: false, executive: true },

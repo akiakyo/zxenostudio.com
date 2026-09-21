@@ -46,6 +46,7 @@ export function SettingsPage() {
   const { data, error, loading, reload } = useApi<Member>("profile");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [department,setDepartment]=useState(''),[workStatus,setWorkStatus]=useState('studio');
   const [saving, setSaving] = useState(false);
@@ -57,6 +58,7 @@ export function SettingsPage() {
     if (data) {
       setName(data.name);
       setPhone(data.phone);
+      setEmail(data.email ?? "");
       setBio(data.bio);
       setDepartment(data.department);setWorkStatus(data.workStatus);
     }
@@ -67,7 +69,7 @@ export function SettingsPage() {
     setSaving(true);
     setFormError("");
     try {
-      const updated = await patch<Member>("profile", { name, phone, bio, department, workStatus });
+      const updated = await patch<Member>("profile", { name, phone, email, bio, department, workStatus });
       updateSession({ name: updated.name });
       reloadLookups();
       toast("Profile saved");
@@ -102,6 +104,11 @@ export function SettingsPage() {
             <div className="field">
               <label htmlFor="profile-phone">Phone</label>
               <input id="profile-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} autoComplete="tel" placeholder="+63 917 000 0000" />
+            </div>
+            <div className="field">
+              <label htmlFor="profile-email">Email</label>
+              <input id="profile-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} autoComplete="email" placeholder="name@example.com" />
+              <small>Where studio announcements are emailed. Executives can see it.</small>
             </div>
             <div className="field">
               <label htmlFor="profile-bio">Bio</label>

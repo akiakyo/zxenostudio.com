@@ -264,3 +264,59 @@ test('a hidden tab still hears a message and keeps its unread badge',async({page
  /* and the badge still says it is unread, because they never actually looked */
  expect((await request('badges')).data.chat).toBeGreaterThan(0);
 });
+
+test('announcement emails: the list, send to all, send to chosen addresses',async()=>{
+ const calls:any[]=[];const realFetch=globalThis.fetch;const realKey=process.env.RESEND_API_KEY;
+ process.env.RESEND_API_KEY='re_test_not_a_real_key';
+ globalThis.fetch=(async(url:any,init:any)=>{calls.push({url:String(url),headers:init.headers,body:JSON.parse(init.body)});return new Response(JSON.stringify({data:[]}),{status:200});}) as any;
+ try{
+  const a=await create('announcements',{title:'Studio <closed> Friday',body:'No shoots.\n\nEnjoy the long weekend.'});
+  expect((await request('announcement-emails','GET',undefined,'member.test')).status).toBe(403);
+  expect((await request('announcement-send','POST',{id:a.id,to:'all'},'member.test')).status).toBe(403);
+  expect((await request('announcement-send','POST',{id:a.id,to:'all'})).status).toBe(400); // nobody has an address yet
+  expect((await request('announcement-emails','PATCH',{emails:{'member.test':'not-an-email'}})).status).toBe(400);
+  const saved=await request('announcement-emails','PATCH',{emails:{'exec.test':'exec@example.com','member.test':'member@example.com'}});
+  expect(saved.data.filter((c:any)=>c.email).length).toBe(2);
+  const all=await request('announcement-send','POST',{id:a.id,to:'all'});expect(all.data.sent).toBe(2);
+  expect(calls.map(c=>c.url)).toEqual(['https://api.resend.com/emails','https://api.resend.com/emails']);
+  expect(calls[0].headers.authorization).toBe('Bearer re_test_not_a_real_key');
+  expect(calls.map(c=>c.body.to[0]).sort()).toEqual(['exec@example.com','member@example.com']); // one message each
+  const m=calls[0].body;expect(m.from).toBe('ZXENO Studio <announcement@zxenostudio.com>');
+  expect(m.html).toContain('Studio &#60;closed&#62; Friday');
+  expect(m.html).toContain('src="cid:zxeno-logo"');expect(m.attachments[0].content_id).toBe('zxeno-logo');expect(m.attachments[0].content.length).toBeGreaterThan(1000);
+  const some=await request('announcement-send','POST',{id:a.id,to:['member@example.com','MEMBER@example.com','guest@example.org']});
+  expect(some.data.sent).toBe(2);
+  expect((await request('announcement-send','POST',{id:a.id,to:['nope']})).status).toBe(400);
+  const listed=(await request('announcements')).data.find((x:any)=>x.id===a.id);expect(listed.emailedCount).toBe(2);expect(listed.emailedAt).toBeTruthy();
+  /* members keep their own address from Settings */
+  expect((await request('profile','PATCH',{email:'bad'},'other.test')).status).toBe(400);
+  expect((await request('profile','PATCH',{email:'other@example.com'},'other.test')).data.email).toBe('other@example.com');
+  /* a Resend refusal reaches the person sending */
+  globalThis.fetch=(async()=>new Response(JSON.stringify({message:'The zxenostudio.com domain is not verified.'}),{status:403})) as any;
+  const refused=await request('announcement-send','POST',{id:a.id,to:'all'});expect(refused.status).toBe(502);expect(refused.data.error).toContain('not verified');
+ }finally{globalThis.fetch=realFetch;if(realKey===undefined)delete process.env.RESEND_API_KEY;else process.env.RESEND_API_KEY=realKey;}
+});
+
+test('posting an announcement leads straight to sending it by email',async({page})=>{
+ const sent:any[]=[];const realFetch=globalThis.fetch;process.env.RESEND_API_KEY='re_test_not_a_real_key';
+ globalThis.fetch=(async(_url:any,init:any)=>{sent.push(JSON.parse(init.body));return new Response('{"data":[]}',{status:200});}) as any;
+ try{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await mount(page,'/announcements');await expect(page.getByRole('heading',{name:'Announcements',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'New announcement'}).click();
+  const form=page.getByRole('dialog');await form.getByLabel('Title').fill('Town hall on Monday');await form.getByLabel(/^Message/).fill('10am in Studio A.');
+  await form.getByRole('button',{name:'Create announcement'}).click();
+  const send=page.getByRole('dialog',{name:'Send by email'});await expect(send).toBeVisible();
+  await expect(send.getByText(/Everyone on the email list/)).toBeVisible();
+  await page.screenshot({path:'test-results/announcement-send-all.png'});
+  await send.getByRole('radio',{name:'Send to email'}).click();
+  await send.getByLabel('member').check();await send.getByLabel('Other email addresses').fill('client@example.org');
+  await page.screenshot({path:'test-results/announcement-send-some.png'});
+  await send.getByRole('button',{name:'Send to 2 people'}).click();await expect(send).not.toBeVisible();
+  expect(sent.map(m=>m.to[0]).sort()).toEqual(['client@example.org','member@example.com']);
+  await expect(page.getByText(/Emailed to 2 people/).first()).toBeVisible();
+  await page.getByRole('button',{name:'Email list'}).click();const list=page.getByRole('dialog',{name:'Email list'});
+  await expect(list.getByLabel(/^exec/)).toHaveValue('exec@example.com');await page.screenshot({path:'test-results/announcement-email-list.png'});
+  expect(errors).toEqual([]);
+ }finally{globalThis.fetch=realFetch;}
+});

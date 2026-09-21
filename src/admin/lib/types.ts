@@ -21,6 +21,8 @@ export type Member = {
   title: string;
   access: Access;
   phone: string;
+  /* only on your own profile */
+  email?: string;
   bio: string;
   openTasks: number;
 };
@@ -157,6 +159,16 @@ export type Announcement = Authored & {
   body: string;
   pinned: boolean;
   createdByTitle: string | null;
+  emailedAt: string | null;
+  emailedCount: number;
+};
+
+/* A row of the announcement email list. */
+export type EmailContact = {
+  username: string;
+  name: string;
+  title: string;
+  email: string;
 };
 
 export type MeetingNote = Authored & {
