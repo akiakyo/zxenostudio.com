@@ -1,4 +1,4 @@
-import { Crown, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowRight, Crown, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useApi } from "../lib/api";
 import { formatDate, money, relativeDay } from "../lib/format";
 import { Link } from "../lib/router";
@@ -144,7 +144,7 @@ export function ExecutivesPage() {
                   </li>
                 ))}
               </ul>
-              <Link to="/roles" className="panel-more">Manage roles →</Link>
+              <Link to="/roles" className="panel-more">Manage roles<ArrowRight aria-hidden="true" /></Link>
             </Panel>
           </div>
         </>

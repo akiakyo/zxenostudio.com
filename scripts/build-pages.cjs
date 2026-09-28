@@ -5,7 +5,7 @@ for (const [route, title] of Object.entries({
   services: "Our services",
   work: "Our works",
   about: "About the studio",
-  pricing: "Pricing",
+  // pricing: "Pricing", // hidden for now
   book: "Book a call",
 })) {
   const folder = path.join("dist", route);

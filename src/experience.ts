@@ -1,5 +1,5 @@
 import { playIntro } from "./intro";
-import { projects } from "./content";
+import { films } from "./content";
 import { setupReveals } from "./reveal";
 export function setupExperience() {
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -214,7 +214,7 @@ export function setupExperience() {
     button.addEventListener(
       "click",
       () => {
-        const project = projects[Number(button.dataset.film)];
+        const project = films[Number(button.dataset.film)];
         if (!project) return;
         returnFocus = button;
         player.src = `/media/${project.slug}.mp4`;

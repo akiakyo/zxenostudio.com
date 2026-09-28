@@ -499,7 +499,8 @@ export function Navigation() {
         <a href="/">Home</a>
         <a href="/work">Work</a>
         <a href="/about">About</a>
-        <a href="/pricing">Pricing</a>
+        {/* Pricing hidden for now; restore with the /pricing route in App.tsx.
+        <a href="/pricing">Pricing</a> */}
         <a href="/services">Services</a>
         <a href="/book">
           Book a call <ArrowUpRight aria-hidden="true" />

@@ -16,10 +16,12 @@
     <loc>https://zxenostudio.com/about</loc>
     <priority>0.6</priority>
   </url>
+  <!-- Pricing hidden for now.
   <url>
     <loc>https://zxenostudio.com/pricing</loc>
     <priority>0.6</priority>
   </url>
+  -->
   <url>
     <loc>https://zxenostudio.com/book</loc>
     <priority>0.7</priority>

@@ -133,7 +133,7 @@ export async function send(session: Session, body: Record<string, any>) {
     "emailed",
     "announcement",
     id,
-    `${announcement.title} → ${sent} ${sent === 1 ? "person" : "people"}`,
+    `${announcement.title}, sent to ${sent} ${sent === 1 ? "person" : "people"}`,
   );
   return { sent };
 }

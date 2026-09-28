@@ -35,7 +35,7 @@ export function playIntro(
     getComputedStyle(document.documentElement)
       .getPropertyValue("--brand")
       .trim() || "#55A630";
-  overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="mark-cut"><circle id="mark-circle"/></clipPath></defs><rect id="portal-field" width="100%" height="100%" fill="${field}"/><g id="solid-mark" clip-path="url(#mark-cut)"><image href="/assets/mark.svg" width="312" height="320" x="-156" y="-160"/></g></svg><span class="intro-label">ZXENO Studio / Enter the creative world</span><button class="intro-skip">Skip intro ↗</button>`;
+  overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="mark-cut"><circle id="mark-circle"/></clipPath></defs><rect id="portal-field" width="100%" height="100%" fill="${field}"/><g id="solid-mark" clip-path="url(#mark-cut)"><image href="/assets/mark.svg" width="312" height="320" x="-156" y="-160"/></g></svg><span class="intro-label">ZXENO Studio / Enter the creative world</span><button class="intro-skip">Skip intro <svg class="lucide" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></button>`;
   // The word-mark is a plain, unmasked top-layer element (positioned, so it
   // stacks above the static <svg> the same way .intro-logo-scene does — see
   // the CSS comment there) rather than something revealed through a small

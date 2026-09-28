@@ -23,7 +23,8 @@ export function Footer() {
           <a href="/about">About us</a>
           <a href="/work">Portfolio</a>
           <a href="/services">Our services</a>
-          <a href="/pricing">Pricing</a>
+          {/* Pricing hidden for now.
+          <a href="/pricing">Pricing</a> */}
         </div>
         <div className="footer-capabilities">
           <h2>Capabilities</h2>

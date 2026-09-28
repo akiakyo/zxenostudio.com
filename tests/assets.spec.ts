@@ -8,8 +8,14 @@ test("portfolio galleries, transparent artwork, icons and footer", async ({
     sessionStorage.setItem("zxeno-intro-3d", "seen"),
   );
   await page.goto("/work");
-  await expect(page.locator(".portfolio-grid article")).toHaveCount(4);
-  for (const name of ["3D VFX", "iPhone", "JBL Headset", "Sauvage Dior"]) {
+  await expect(page.locator(".portfolio-grid article")).toHaveCount(5);
+  for (const name of [
+    "DITO Telecommunity",
+    "3D VFX",
+    "iPhone",
+    "JBL Headset",
+    "Sauvage Dior",
+  ]) {
     const trigger = page.getByRole("button", { name: `View ${name} gallery` });
     await trigger.click();
     await expect(page.locator(".gallery-dialog")).toBeVisible();

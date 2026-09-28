@@ -1,14 +1,7 @@
-﻿import { useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, X } from "lucide-react";
+﻿import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, X } from "lucide-react";
 import { galleryProjects } from "../content";
 export function PortfolioGallery() {
-  const [active, setActive] = useState(0);
-  const [frame, setFrame] = useState(1);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const trigger = useRef<HTMLButtonElement | null>(null);
-  const project = galleryProjects[active];
-  const step = (offset: number) =>
-    setFrame((n) => ((n - 1 + offset + project.count) % project.count) + 1);
   return (
     <section
       className="portfolio-gallery"
@@ -17,76 +10,104 @@ export function PortfolioGallery() {
     >
       <h2 id="portfolio-heading">In three dimensions.</h2>
       <div className="portfolio-grid">
-        {galleryProjects.map((p, i) => (
-          <article key={p.slug}>
-            <button
-              className="gallery-cover"
-              onClick={(e) => {
-                trigger.current = e.currentTarget;
-                setActive(i);
-                setFrame(1);
-                dialog.current?.showModal();
-              }}
-              aria-label={`View ${p.name} gallery`}
-            >
-              <img
-                src={`/media/portfolio/${p.slug}-1.png`}
-                alt={`${p.name} 3D artwork`}
-                loading="lazy"
-              />
-              <span>View project · {p.count} images ↗</span>
-            </button>
-            <h3>{p.name}</h3>
-            <p>{p.type}</p>
-          </article>
+        {galleryProjects.map((p) => (
+          <GalleryCard key={p.slug} project={p} />
         ))}
       </div>
-      <dialog
-        className="gallery-dialog"
-        ref={dialog}
-        aria-labelledby="gallery-title"
-        onClose={() => trigger.current?.focus()}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) dialog.current?.close();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            step(1);
-          }
-          if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            step(-1);
-          }
-        }}
-      >
-        <div className="gallery-toolbar">
-          <h2 id="gallery-title">{project.name}</h2>
-          <button
-            onClick={() => dialog.current?.close()}
-            aria-label="Close gallery"
-          >
-            <X />
-          </button>
-        </div>
-        <img
-          className="gallery-full"
-          src={`/media/portfolio/${project.slug}-${frame}.png`}
-          alt={`${project.name} — view ${frame}`}
-        />
-        <div className="gallery-toolbar">
-          <button onClick={() => step(-1)} aria-label="Previous image">
-            <ArrowLeft />
-          </button>
-          <span aria-live="polite">
-            {frame} / {project.count}
-          </span>
-          <button onClick={() => step(1)} aria-label="Next image">
-            <ArrowRight />
-          </button>
-        </div>
-      </dialog>
     </section>
+  );
+}
+// A gallery cover plus its image viewer. Shared by the Work page grid and
+// the home page showcase. The dialog only mounts while open, so a page with
+// several cards still has a single gallery dialog at a time.
+export function GalleryCard({
+  project,
+}: {
+  project: (typeof galleryProjects)[number];
+}) {
+  const [open, setOpen] = useState(false);
+  const [frame, setFrame] = useState(1);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (open) dialog.current?.showModal();
+  }, [open]);
+  const step = (offset: number) =>
+    setFrame((n) => ((n - 1 + offset + project.count) % project.count) + 1);
+  return (
+    <article className="gallery-card">
+      <button
+        ref={trigger}
+        className="gallery-cover"
+        onClick={() => {
+          setFrame(1);
+          setOpen(true);
+        }}
+        aria-label={`View ${project.name} gallery`}
+      >
+        <img
+          src={`/media/portfolio/${project.slug}-1.png`}
+          alt={`${project.name} artwork`}
+          loading="lazy"
+        />
+        <span>
+          View project · {project.count} images{" "}
+          <ArrowUpRight aria-hidden="true" />
+        </span>
+      </button>
+      <h3>{project.name}</h3>
+      <p>{project.type}</p>
+      {open && (
+        <dialog
+          className="gallery-dialog"
+          ref={dialog}
+          aria-labelledby="gallery-title"
+          onClose={() => {
+            setOpen(false);
+            trigger.current?.focus();
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) dialog.current?.close();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight") {
+              e.preventDefault();
+              step(1);
+            }
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              step(-1);
+            }
+          }}
+        >
+          <div className="gallery-toolbar">
+            <h2 id="gallery-title">{project.name}</h2>
+            <button
+              onClick={() => dialog.current?.close()}
+              aria-label="Close gallery"
+            >
+              <X />
+            </button>
+          </div>
+          <img
+            className="gallery-full"
+            src={`/media/portfolio/${project.slug}-${frame}.png`}
+            alt={`${project.name} — view ${frame}`}
+          />
+          <div className="gallery-toolbar">
+            <button onClick={() => step(-1)} aria-label="Previous image">
+              <ArrowLeft />
+            </button>
+            <span aria-live="polite">
+              {frame} / {project.count}
+            </span>
+            <button onClick={() => step(1)} aria-label="Next image">
+              <ArrowRight />
+            </button>
+          </div>
+        </dialog>
+      )}
+    </article>
   );
 }
 export function ServiceArtwork({

@@ -13,7 +13,7 @@ test("separate pages, font, booking and responsive layouts", async ({
     "/services",
     "/work",
     "/about",
-    "/pricing",
+    // "/pricing", // hidden for now
     "/book",
   ]) {
     await page.goto(route);
@@ -47,14 +47,15 @@ test("separate pages, font, booking and responsive layouts", async ({
   await expect(
     page.getByRole("link", { name: "Request a call by email" }),
   ).toHaveAttribute("href", /^mailto:zxenostudio@gmail.com\?subject=/);
-  await page
-    .getByRole("navigation", { name: "Main navigation" })
-    .getByRole("link", { name: "Pricing", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/pricing$/);
-  await expect(page.locator(".price-note")).toContainText(
-    "Temporary placeholder",
-  );
+  // Pricing hidden for now.
+  // await page
+  //   .getByRole("navigation", { name: "Main navigation" })
+  //   .getByRole("link", { name: "Pricing", exact: true })
+  //   .click();
+  // await expect(page).toHaveURL(/\/pricing$/);
+  // await expect(page.locator(".price-note")).toContainText(
+  //   "Temporary placeholder",
+  // );
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   await nav.getByRole("link", { name: "Work", exact: true }).click();

@@ -1,5 +1,6 @@
 import {
   AlarmClock,
+  ArrowRight,
   CalendarClock,
   FolderPlus,
   ListChecks,
@@ -148,7 +149,7 @@ export function DashboardPage() {
               ) : (
                 <EmptyState icon={ListChecks} title="Nothing assigned to you">Enjoy the calm.</EmptyState>
               )}
-              <Link to="/tasks/mine" className="panel-more">All my tasks →</Link>
+              <Link to="/tasks/mine" className="panel-more">All my tasks<ArrowRight aria-hidden="true" /></Link>
             </Panel>
 
             <Panel title="Upcoming deadlines">
@@ -171,7 +172,7 @@ export function DashboardPage() {
               ) : (
                 <EmptyState icon={AlarmClock} title="No deadlines in the next two weeks" />
               )}
-              <Link to="/deadlines" className="panel-more">All deadlines →</Link>
+              <Link to="/deadlines" className="panel-more">All deadlines<ArrowRight aria-hidden="true" /></Link>
             </Panel>
 
             <Panel title="Announcements">
@@ -191,7 +192,7 @@ export function DashboardPage() {
               ) : (
                 <EmptyState title="No announcements yet" />
               )}
-              <Link to="/announcements" className="panel-more">All announcements →</Link>
+              <Link to="/announcements" className="panel-more">All announcements<ArrowRight aria-hidden="true" /></Link>
             </Panel>
 
             <Panel
@@ -221,7 +222,7 @@ export function DashboardPage() {
               ) : (
                 <EmptyState icon={Send} title="No weekly updates yet">Post the first one for this week.</EmptyState>
               )}
-              <Link to="/activity?tab=updates" className="panel-more">All weekly updates →</Link>
+              <Link to="/activity?tab=updates" className="panel-more">All weekly updates<ArrowRight aria-hidden="true" /></Link>
             </Panel>
 
             <Panel title="Recent activity">
@@ -234,7 +235,7 @@ export function DashboardPage() {
               ) : (
                 <EmptyState title="Nothing has happened yet" />
               )}
-              <Link to="/activity" className="panel-more">Full activity feed →</Link>
+              <Link to="/activity" className="panel-more">Full activity feed<ArrowRight aria-hidden="true" /></Link>
             </Panel>
           </div>
         </>

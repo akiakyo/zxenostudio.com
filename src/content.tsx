@@ -4,10 +4,52 @@ export const projects = [
   { slug: "redline", name: "RED LINE", type: "Motion study / Moving image" },
   { slug: "dito", name: "DITO MAXX", type: "Brand film / Motion & edit" },
 ];
+// Home page showcase films. They share the film player with `projects`, so
+// their `data-film` index continues on from it (see `films`).
+export const showcaseProjects = [
+  { slug: "sauvage", name: "Sauvage Dior", type: "Product film / 3D" },
+  { slug: "jbl", name: "JBL Headset", type: "Product film / 3D" },
+];
+export const films = [...projects, ...showcaseProjects];
+// Logos live in /media/brands, cropped to their visible edges. `ratio` is
+// width / height, used to size each mark by area rather than by height so
+// wide wordmarks and square marks read at a similar weight. `variant` names
+// the extra file a mark needs to stay visible in the other theme:
+// `-dark` lightens near-black parts, `-light` darkens a white-only mark.
+export type Brand = {
+  slug: string;
+  name: string;
+  ratio: number;
+  variant?: "dark" | "light";
+};
+export const brandsWorkedWith: Brand[] = [
+  {
+    slug: "ncfp",
+    name: "Noordhoff Craniofacial Foundation Philippines",
+    ratio: 0.83,
+    variant: "dark",
+  },
+  { slug: "dito", name: "DITO Telecommunity", ratio: 2.06, variant: "dark" },
+  { slug: "gma", name: "GMA Network", ratio: 2.16 },
+  { slug: "honda", name: "Honda", ratio: 1.58 },
+  { slug: "puregold", name: "Puregold", ratio: 1.87, variant: "dark" },
+  { slug: "calibre-co", name: "Calibre Co.", ratio: 3.8, variant: "dark" },
+  { slug: "sintachat", name: "Sintachat", ratio: 0.75 },
+];
+export const brandPartners: Brand[] = [
+  { slug: "calibre-co", name: "Calibre Co.", ratio: 3.8, variant: "dark" },
+  { slug: "caidalum", name: "Caidalum", ratio: 0.94, variant: "light" },
+];
 // The Work page's 3D gallery. Shared with the intro's project showcase, so
 // it lives here alongside `projects` rather than inside the Portfolio
 // component.
 export const galleryProjects = [
+  {
+    slug: "dito",
+    name: "DITO Telecommunity",
+    count: 5,
+    type: "Campaign graphics / Design",
+  },
   {
     slug: "vfx",
     name: "3D VFX",

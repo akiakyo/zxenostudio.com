@@ -1,4 +1,14 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import {
+  Project,
+  projects,
+  showcaseProjects,
+  brandsWorkedWith,
+  brandPartners,
+  galleryProjects,
+  type Brand,
+} from "../content";
+import { GalleryCard } from "./Portfolio";
 import {
   CreditCard,
   ClipboardList,
@@ -120,32 +130,109 @@ export function ServiceDirectory() {
     </>
   );
 }
-const brandStripNames = ["NCFP", "RED LINE", "DITO MAXX"];
+
+function BrandStrip({
+  label,
+  brands,
+  reverse,
+  children,
+}: {
+  label: string;
+  brands: Brand[];
+  reverse?: boolean;
+  children?: ReactNode;
+}) {
+  // Each copy repeats the list until it holds at least eight marks, so a
+  // short list still spans a wide viewport and the loop never shows a gap.
+  const set = Array.from(
+    { length: Math.ceil(8 / brands.length) },
+    () => brands,
+  ).flat();
+  const logos = set.map((brand, i) => {
+    const src = (suffix = "") => `/media/brands/${brand.slug}${suffix}.webp`;
+    return (
+      <span
+        key={i}
+        className="brand-logo"
+        style={
+          {
+            "--ratio": brand.ratio,
+            // Size by area: wide wordmarks shrink, square marks grow.
+            "--scale": Math.pow(2 / brand.ratio, 0.45).toFixed(3),
+          } as CSSProperties
+        }
+      >
+        {brand.variant ? (
+          <>
+            <img
+              className="on-light"
+              src={src(brand.variant === "light" ? "-light" : "")}
+              alt=""
+              loading="lazy"
+            />
+            <img
+              className="on-dark"
+              src={src(brand.variant === "dark" ? "-dark" : "")}
+              alt=""
+              loading="lazy"
+            />
+          </>
+        ) : (
+          <img src={src()} alt="" loading="lazy" />
+        )}
+      </span>
+    );
+  });
+  return (
+    <section
+      className={`brand-strip${reverse ? " is-reverse" : ""}`}
+      data-tone="paper"
+    >
+      <span className="eyebrow">{label}</span>
+      {/* The marquee repeats every logo, so it is hidden from screen
+          readers, which get the names once from this list instead. */}
+      <ul className="sr-only">
+        {brands.map((brand) => (
+          <li key={brand.slug}>{brand.name}</li>
+        ))}
+      </ul>
+      <div className="brand-strip-viewport" aria-hidden="true">
+        {/* Two identical copies back to back, animated left by exactly
+            one copy's width, looping seamlessly — a real marquee rather
+            than a wrapping row. */}
+        <div className="brand-strip-track">
+          <div className="brand-strip-set">{logos}</div>
+          <div className="brand-strip-set">{logos}</div>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
 export function HomeOverview() {
   return (
     <>
-      <section className="brand-strip" data-tone="paper">
-        <span className="eyebrow">Brands featured in our work</span>
-        <div className="brand-strip-viewport">
-          {/* Two identical copies back to back, animated left by exactly
-              one copy's width, looping seamlessly — a real marquee rather
-              than a wrapping row. The second copy is decorative. */}
-          <div className="brand-strip-track">
-            <div className="brand-strip-set">
-              {brandStripNames.map((name) => (
-                <span key={name}>{name}</span>
-              ))}
-            </div>
-            <div className="brand-strip-set" aria-hidden="true">
-              {brandStripNames.map((name) => (
-                <span key={name}>{name}</span>
-              ))}
-            </div>
-          </div>
+      <BrandStrip label="Brands we've worked with" brands={brandsWorkedWith} />
+      <BrandStrip label="Brand partners" brands={brandPartners} reverse />
+      <section className="showcase" data-tone="paper">
+        <div className="showcase-top">
+          <span className="eyebrow">Featured work</span>
+          <a className="text-link" href="/work">
+            Our works <ArrowUpRight aria-hidden="true" />
+          </a>
         </div>
-        <a className="text-link" href="/work">
-          Our works <ArrowUpRight aria-hidden="true" />
-        </a>
+        <div className="showcase-list">
+          {showcaseProjects.map((project, i) => (
+            <Project
+              key={project.slug}
+              project={project}
+              index={projects.length + i}
+            />
+          ))}
+          <GalleryCard
+            project={galleryProjects.find((p) => p.slug === "dito")!}
+          />
+        </div>
       </section>
       <section className="home-overview" data-tone="paper">
         <span className="eyebrow">Our services</span>
@@ -194,12 +281,13 @@ const quickLinks = [
     icon: Layers,
     copy: "Everything we do.",
   },
-  {
-    label: "Pricing",
-    href: "/pricing",
-    icon: Wallet,
-    copy: "How projects are priced.",
-  },
+  // Pricing hidden for now.
+  // {
+  //   label: "Pricing",
+  //   href: "/pricing",
+  //   icon: Wallet,
+  //   copy: "How projects are priced.",
+  // },
 ];
 export function QuickLinks() {
   return (

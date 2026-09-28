@@ -19,7 +19,7 @@ import {
   HomeOverview,
   QuickLinks,
   ProjectApproach,
-  Pricing,
+  // Pricing, // hidden for now
   Booking,
 } from "./components/Pages";
 export default function App() {
@@ -28,7 +28,7 @@ export default function App() {
     "/services": "Our services",
     "/work": "Our works",
     "/about": "About the studio",
-    "/pricing": "Pricing",
+    // "/pricing": "Pricing", // hidden for now
     "/book": "Book a call",
   };
   useEffect(() => {
@@ -94,21 +94,23 @@ export default function App() {
             <About />
             <Team />
           </>
-        ) : path === "/pricing" ? (
-          <>
-            <PageHeading
-              label="Pricing"
-              title={
-                <>
-                  Let's talk <span className="accent-italic">scope.</span>
-                </>
-              }
-              copy="Creative work built around your project. All pricing in PHP."
-            />
-            <Pricing />
-            <ProjectApproach />
-          </>
-        ) : path === "/book" ? (
+        ) : // Pricing hidden for now; /pricing falls through to the 404.
+        // path === "/pricing" ? (
+        //   <>
+        //     <PageHeading
+        //       label="Pricing"
+        //       title={
+        //         <>
+        //           Let's talk <span className="accent-italic">scope.</span>
+        //         </>
+        //       }
+        //       copy="Creative work built around your project. All pricing in PHP."
+        //     />
+        //     <Pricing />
+        //     <ProjectApproach />
+        //   </>
+        // ) :
+        path === "/book" ? (
           <>
             <PageHeading
               label="Book a call"

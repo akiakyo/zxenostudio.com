@@ -177,14 +177,6 @@ const Composer = forwardRef<ComposerHandle, {
   return (
     <form className="chat-composer" onSubmit={submit}>
       <IconButton icon={Paperclip} label="Attach asset link" onClick={onAttach} />
-      <IconButton
-        icon={SmilePlus}
-        label="Insert emoji"
-        onClick={() => {
-          setDraft((current) => current + " 👍");
-          input.current?.focus();
-        }}
-      />
       <label htmlFor="chat-input" className="sr-only">Message {title}</label>
       <textarea
         id="chat-input"

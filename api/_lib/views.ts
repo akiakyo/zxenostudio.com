@@ -334,7 +334,7 @@ export async function updateMember(
     "changed the role of",
     "member",
     username,
-    `${updated.name || username} → ${updated.title} (${updated.access})`,
+    `${updated.name || username} to ${updated.title} (${updated.access})`,
   );
   return updated;
 }

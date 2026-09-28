@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import {
   Archive,
   ArchiveRestore,
+  ArrowLeft,
+  ArrowRight,
   Check,
   ExternalLink,
   Flag,
@@ -68,7 +70,7 @@ export function ProjectDetailPage() {
   if (error) {
     return (
       <div className="page">
-        <Link to="/projects" className="back-link">← Projects</Link>
+        <Link to="/projects" className="back-link"><ArrowLeft aria-hidden="true" /> Projects</Link>
         <ErrorNote message={error === "Not found" ? "This project no longer exists." : error} onRetry={error === "Not found" ? undefined : reload} />
       </div>
     );
@@ -79,7 +81,7 @@ export function ProjectDetailPage() {
   return (
     <div className="page">
       <Link to={project.archived ? "/archives" : "/projects"} className="back-link">
-        ← {project.archived ? "Project archives" : "Projects"}
+        <ArrowLeft aria-hidden="true" /> {project.archived ? "Project archives" : "Projects"}
       </Link>
       <header className="project-head">
         <div className="project-head-main">
@@ -92,7 +94,7 @@ export function ProjectDetailPage() {
           <p className="project-sub">
             {project.clientName ? `For ${project.clientName}` : "No client"}
             {" · "}
-            {project.startDate ? formatDate(project.startDate) : "No start"} → {project.dueDate ? formatDate(project.dueDate, { year: true }) : "No due date"}
+            {project.startDate ? formatDate(project.startDate) : "No start"} <ArrowRight aria-hidden="true" /> {project.dueDate ? formatDate(project.dueDate, { year: true }) : "No due date"}
           </p>
           <div className="project-progress">
             <Progress value={project.progress} />

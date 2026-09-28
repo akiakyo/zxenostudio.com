@@ -579,7 +579,9 @@ h3 {
   flex-wrap: wrap;
 }
 .back-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-bottom: 14px;
   color: var(--text-2);
   font-size: 14px;
@@ -631,8 +633,17 @@ h3 {
 .panel-link:hover {
   background: var(--accent-soft);
 }
+.back-link .lucide,
+.panel-more .lucide,
+.project-sub .lucide {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+}
 .panel-more {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 12px;
   font-size: 13px;
   font-weight: 600;
@@ -3888,4 +3899,14 @@ a.hero-tile:hover {
   justify-content: center;
   min-height: 100%;
   padding: 0;
+}
+
+/* Unread marker on a notification row (lucide Dot). */
+.notification-unread {
+  width: 18px;
+  height: 18px;
+  margin: 0 -2px 0 -5px;
+  vertical-align: -4px;
+  stroke-width: 4;
+  color: var(--red);
 }
