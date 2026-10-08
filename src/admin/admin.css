@@ -4620,3 +4620,63 @@ a.hero-tile:hover {
 :root[data-theme="dark"] .checklist-count.is-complete {
   color: var(--brand-lift);
 }
+
+/* Chat @mentions */
+.chat-composer {
+  position: relative;
+}
+.chat-mention-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  max-width: 360px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.chat-mention-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.chat-mention-list li .muted {
+  margin-left: auto;
+  font-size: 12px;
+}
+.chat-mention-list li[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+.chat-mention {
+  padding: 0 3px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--blue) 14%, transparent);
+  color: var(--blue);
+  font-weight: 600;
+}
+.chat-mention.is-me {
+  background: var(--accent-soft);
+  color: var(--brand-deep);
+}
+:root[data-theme="dark"] .chat-mention.is-me {
+  color: var(--brand-lift);
+}
+.chat-message.mentions-me {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .chat-mention-list {
+    animation: pop-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    transform-origin: bottom left;
+  }
+}

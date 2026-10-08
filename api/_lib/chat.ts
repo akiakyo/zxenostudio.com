@@ -6,6 +6,7 @@ import type { Session } from "./auth.js";
 import { camelRow } from "./crud.js";
 import { one, query, Params } from "./db.js";
 import { HttpError, isExecutive, notFound } from "./http.js";
+import { notice, sendLater, sendNotice } from "./notices.js";
 
 /* Lucide icon names; the client maps each to its icon. */
 export const REACTIONS = [
@@ -139,6 +140,8 @@ export async function read(session: Session, search: URLSearchParams) {
     const last=rows.reduce((n,r)=>BigInt(r.id)>n?BigInt(r.id):n,0n).toString();
     await query(`INSERT INTO admin_chat_reads(username,conversation,last_message_id) VALUES($1,$2,$3)
       ON CONFLICT(username,conversation) DO UPDATE SET last_message_id=greatest(admin_chat_reads.last_message_id,excluded.last_message_id)`,[session.username,project?`project:${project.id}`:dm?`dm:${dm}`:room,last]);
+    /* a mention on screen has been seen */
+    await readMentions(session,rows.map(r=>String(r.id)));
   }
 
   return {
@@ -179,8 +182,118 @@ export async function send(session: Session, body: Record<string, unknown>) {
     `INSERT INTO admin_chat_messages (author, body,channel,recipient,project_id) VALUES ($1, $2,$3,$4,$5) RETURNING id::text`,
     [session.username, text,room,dm,project?project.id:null],
   );
+  await recordMentions(session, row!.id, text, room, dm, project);
   await touch(session);
   return load(row!.id);
+}
+
+/* "#general", "Halo Labs launch" or "a direct message" */
+export function mentionPlace(r: Record<string, any>){
+ return r.project_id?String(r.project_name):r.recipient?'a direct message':`#${r.channel}`;
+}
+/* the chat page query that opens the conversation a mention was said in */
+export function mentionLink(r: Record<string, any>,me:string){
+ return r.project_id?`project=${r.project_id}`:r.recipient?`dm=${r.recipient===me?r.author:r.recipient}`:`channel=${r.channel}`;
+}
+
+/* "@aquio.zxeno" anywhere a word can start; not inside emails like a@b.com */
+const MENTION = /(^|[^\w.@])@([a-z0-9][a-z0-9._-]{0,63})/gi;
+
+export function mentionedUsernames(text: string): string[] {
+  const names = new Set<string>();
+  for (const match of text.matchAll(MENTION)) {
+    /* a sentence can end right after a name: "thanks @aquio.zxeno." */
+    names.add(match[2].toLowerCase().replace(/[._-]+$/, ""));
+  }
+  return [...names];
+}
+
+/* Only real teammates who can actually read the message are notified: anyone
+   in a shared channel, the people on a project's room, the other person in a
+   direct message. Nobody is notified of their own mention. */
+async function recordMentions(
+  session: Session,
+  messageId: string,
+  text: string,
+  room: string,
+  dm: string | null,
+  project: Record<string, any> | null,
+) {
+  const named = mentionedUsernames(text).filter((u) => u !== session.username);
+  if (!named.length) return;
+  const known = await query(`SELECT username FROM admin_users WHERE username = ANY($1)`, [named]);
+  const people = known
+    .map((r) => r.username as string)
+    .filter((u) => (project ? assignedTo(project, u) : dm ? u === dm : true));
+  if (!people.length) return;
+  await query(
+    `INSERT INTO admin_chat_mentions (message_id, username)
+     SELECT $1, unnest($2::text[]) ON CONFLICT DO NOTHING`,
+    [messageId, people],
+  );
+
+  /* and an email to each of them with an address on file, after the reply
+     has gone back to the sender */
+  const recipients = await query(
+    `SELECT username, name, email FROM admin_users WHERE username = ANY($1) AND email <> ''`,
+    [people],
+  );
+  if (!recipients.length) return;
+  const author = await one(`SELECT name, email FROM admin_users WHERE username = $1`, [session.username]);
+  /* where it was said, in the shape mentionPlace and mentionLink read */
+  const row = { channel: room, recipient: dm, project_id: project?.id ?? null, project_name: project?.name ?? null, author: session.username };
+  const authorName = String(author?.name || session.username);
+  for (const person of recipients) {
+    const firstName = String(person.name || person.username).trim().split(/\s+/)[0];
+    sendLater(
+      sendNotice(
+        [String(person.email)],
+        `${authorName} mentioned you in ${mentionPlace(row)}`,
+        notice({
+          eyebrow: "ZXENO HQ chat",
+          title: `${authorName} mentioned you`,
+          lines: [`Hi ${firstName}, ${authorName} mentioned you in ${mentionPlace(row)}:`, text.slice(0, 1200)],
+          button: { label: "Open the conversation", href: `${ADMIN_ORIGIN}/chat?${mentionLink(row, String(person.username))}` },
+          footer: "You're getting this because someone @mentioned you in ZXENO HQ.",
+        }),
+        author?.email ? String(author.email) : undefined,
+      ),
+      "a mention email",
+    );
+  }
+}
+
+const ADMIN_ORIGIN = "https://admin.zxenostudio.com";
+
+/* This person's mentions they haven't read yet, newest first, with where
+   each one was said so the client can link straight to it. */
+export async function mentions(session: Session) {
+  const rows = await query(
+    `SELECT m.id::text AS id, m.author, u.name AS author_name, m.body, m.channel,
+            m.recipient, m.project_id::text AS project_id, p.name AS project_name,
+            m.created_at
+       FROM admin_chat_mentions x
+       JOIN admin_chat_messages m ON m.id = x.message_id AND m.deleted_at IS NULL
+       JOIN admin_users u ON u.username = m.author
+       LEFT JOIN admin_projects p ON p.id = m.project_id
+      WHERE x.username = $1 AND x.read_at IS NULL
+      ORDER BY m.id DESC LIMIT 20`,
+    [session.username],
+  );
+  return rows.map((r) => ({
+    ...camelRow(r),
+    place: mentionPlace(r),
+    link: mentionLink(r, session.username),
+  }));
+}
+
+export async function readMentions(session: Session, ids: string[]) {
+  if (!ids.length) return;
+  await query(
+    `UPDATE admin_chat_mentions SET read_at = now()
+      WHERE username = $1 AND read_at IS NULL AND message_id = ANY($2::bigint[])`,
+    [session.username, ids],
+  );
 }
 
 /* People delete their own messages; executives can remove any. */

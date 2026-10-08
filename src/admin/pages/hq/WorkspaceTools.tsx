@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CheckCheck, Dot, Plus, Search } from 'lucide-react';
-import { post, useApi } from '../../lib/api';
+import { AtSign, Bell, CheckCheck, Dot, MessageCircle, Plus, Search } from 'lucide-react';
+import { api, post, useApi } from '../../lib/api';
 import { navigate } from '../../lib/router';
 import { useWorkspace } from '../../lib/workspace';
 import { useInvoiceEditor, useProjectEditor, useTaskEditor, useEditor } from '../../ui/editors';
-import { Button, ErrorNote, Menu, Modal, SearchInput, useAction } from '../../ui/ui';
+import { Button, ErrorNote, Menu, Modal, SearchInput, useAction, useUi } from '../../ui/ui';
 import type { RecordRow } from './Records';
 import { eventConfig } from './config';
 import { chime, setSoundOn, soundOn } from '../../lib/sound';
@@ -29,6 +29,45 @@ export function WorkspaceTools(){
   if(lastUnread.current!==null&&unread>lastUnread.current)chime.notification();
   lastUnread.current=unread;
  },[unread,notifications.data]);
+ /* @mentions: a swipe toast for each new one, once, unless that conversation
+    is already on screen. Checked every 15 seconds while the tab is visible. */
+ const {toast}=useUi();
+ useEffect(()=>{
+  const KEY='zxeno-mentions-toasted';
+  const seen=():string[]=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]');}catch{return [];}};
+  const remember=(ids:string[])=>{try{localStorage.setItem(KEY,JSON.stringify([...seen(),...ids].slice(-200)));}catch{}};
+  const onScreen=(link:string)=>{
+   if(location.pathname.replace(/\/+$/,'')!=='/chat'||document.hidden)return false;
+   const [k,v]=link.split('=');const here=new URLSearchParams(location.search);
+   if(k==='channel'&&!here.get('dm')&&!here.get('project'))return (here.get('channel')||'general')===v;
+   return here.get(k)===v;
+  };
+  let stopped=false;
+  const check=async()=>{
+   if(document.hidden)return;
+   const list=await api<any[]>('chat-mentions').catch(()=>null);
+   if(!list||stopped)return;
+   const already=new Set(seen());
+   const fresh=list.filter(m=>!already.has(m.id)).reverse();
+   if(!fresh.length)return;
+   remember(fresh.map(m=>m.id));
+   const shown=fresh.filter(m=>!onScreen(m.link)).slice(-3);
+   if(!shown.length)return;
+   chime.notification();
+   for(const m of shown){
+    toast(`${m.authorName} mentioned you`,'success',{label:'Open',onAction:()=>navigate(`/chat?${m.link}`)},{
+     description:`${m.place}: ${String(m.body).replace(/\s+/g,' ').slice(0,90)}`,
+     icon:<AtSign size={18} aria-hidden/>,duration:9000,silent:true,
+    });
+   }
+   reloadNotifications();
+  };
+  check();
+  const t=setInterval(check,15000);
+  const visible=()=>{if(!document.hidden)check();};
+  document.addEventListener('visibilitychange',visible);
+  return()=>{stopped=true;clearInterval(t);document.removeEventListener('visibilitychange',visible);};
+ },[toast,reloadNotifications]);
  const tasks=useApi<RecordRow[]>(open?'tasks':null),docs=useApi<RecordRow[]>(open?'handbook':null),assets=useApi<RecordRow[]>(open?'assets':null);
  const project=useProjectEditor(r=>navigate(`/projects/${r.id}`));const task=useTaskEditor(false,()=>navigate('/tasks/mine'));
  const invoice=useInvoiceEditor(()=>navigate('/invoices'));const event=useEditor(eventConfig,()=>navigate('/calendar?view=agenda'));
@@ -45,7 +84,7 @@ export function WorkspaceTools(){
    {notifications.error&&<ErrorNote message={notifications.error} onRetry={notifications.reload}/>}
    {unread>0&&<p className="hint">Swipe an unread notification left to mark it read.</p>}
    <div className="notification-list">{notifications.data?.map(n=>{
-    const body=<div className={`notification-card ${n.read?'is-read':''}`}><span><strong>{!n.read&&<Dot aria-label="Unread" className="notification-unread"/>}{n.actorName}</strong> {n.action} {n.summary}</span><div className="notification-foot"><span className="cell-sub">{new Date(n.createdAt).toLocaleString()}</span>{!n.read&&<Button size="sm" onClick={()=>markRead(n.id)}>Mark read</Button>}</div></div>;
+    const body=<div className={`notification-card ${n.read?'is-read':''}`}><span><strong>{!n.read&&<Dot aria-label="Unread" className="notification-unread"/>}{n.actorName}</strong> {n.action} {n.summary}</span><div className="notification-foot"><span className="cell-sub">{new Date(n.createdAt).toLocaleString()}</span><span className="row-buttons">{n.entityType==='mention'&&<Button size="sm" icon={MessageCircle} onClick={()=>{setBell(false);if(!n.read)void markRead(n.id);navigate(`/chat?${n.entityId}`);}}>Open</Button>}{!n.read&&<Button size="sm" onClick={()=>markRead(n.id)}>Mark read</Button>}</span></div></div>;
     /* a read notification is just a card; an unread one can be swiped away */
     return n.read?<div key={n.id}>{body}</div>:<SwipeRow key={n.id} height="auto" radius={16} label={`Notification from ${n.actorName}`} actions={[{id:'read',label:'Read',icon:<CheckCheck size={20} aria-hidden/>}]} onCommit={()=>markRead(n.id)}>{body}</SwipeRow>;
    })}{notifications.data?.length===0&&<p className="muted">You're all caught up.</p>}</div>

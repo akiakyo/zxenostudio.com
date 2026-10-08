@@ -1,7 +1,7 @@
 import type { Session } from './auth.js';
 import { camelRow } from './crud.js';
 import { query, today as today_ } from './db.js';
-import { CHANNELS } from './chat.js';
+import { CHANNELS, mentionLink, mentionPlace, readMentions } from './chat.js';
 import { HttpError, isExecutive } from './http.js';
 
 export async function finance(search:URLSearchParams){
@@ -24,12 +24,28 @@ export async function notifications(s:Session){
   FROM admin_activity a JOIN admin_users u ON u.username=a.actor
   LEFT JOIN admin_notification_reads r ON r.activity_id=a.id AND r.username=$1
   WHERE a.actor<>$1 ORDER BY a.id DESC LIMIT 50`,[s.username]);
- return rows.map(camelRow);
+ /* chat @mentions of this person sit in the same list, ids prefixed "m" */
+ const said=await query(`SELECT 'm'||m.id::text AS id, m.author, m.body, m.channel, m.recipient, m.project_id::text AS project_id,
+  p.name AS project_name, x.created_at, u.name AS actor_name, x.read_at IS NOT NULL AS read
+  FROM admin_chat_mentions x JOIN admin_chat_messages m ON m.id=x.message_id AND m.deleted_at IS NULL
+  JOIN admin_users u ON u.username=m.author LEFT JOIN admin_projects p ON p.id=m.project_id
+  WHERE x.username=$1 ORDER BY x.created_at DESC LIMIT 20`,[s.username]);
+ const mentions=said.map(r=>({
+  id:r.id, actorName:r.actor_name, read:r.read, createdAt:r.created_at,
+  action:'mentioned you in',
+  summary:`${mentionPlace(r)}: "${String(r.body).replace(/\s+/g,' ').slice(0,120)}"`,
+  entityType:'mention', entityId:mentionLink(r,s.username),
+ }));
+ return [...mentions,...rows.map(camelRow)]
+  .sort((a:any,b:any)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()).slice(0,60);
 }
+
 export async function readNotifications(s:Session,body:Record<string,unknown>){
  const ids=body.ids;
- if(!Array.isArray(ids)||ids.length>50||ids.some(id=>typeof id!=='string'||!/^\d+$/.test(id)))throw new HttpError(400,'Choose up to 50 notifications');
- await query(`INSERT INTO admin_notification_reads(username,activity_id) SELECT $1,id FROM admin_activity WHERE id=ANY($2::bigint[]) ON CONFLICT DO NOTHING`,[s.username,ids]);
+ if(!Array.isArray(ids)||ids.length>80||ids.some(id=>typeof id!=='string'||!/^m?\d+$/.test(id)))throw new HttpError(400,'Choose up to 80 notifications');
+ const activity=ids.filter(id=>!id.startsWith('m')),said=ids.filter(id=>id.startsWith('m')).map(id=>id.slice(1));
+ if(activity.length)await query(`INSERT INTO admin_notification_reads(username,activity_id) SELECT $1,id FROM admin_activity WHERE id=ANY($2::bigint[]) ON CONFLICT DO NOTHING`,[s.username,activity]);
+ await readMentions(s,said);
  return {ok:true};
 }
 

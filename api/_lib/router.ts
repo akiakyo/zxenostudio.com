@@ -50,6 +50,15 @@ const VIEWS: Record<string, Partial<Record<string, Handler>>> = {
   'announcement-send': { POST: async(s,r)=>email.send(s,await readBody(r)) },
   'inquiry-convert': { POST: async(s,r)=>inquiries.convert(s,await readBody(r)) },
   'member-password': { POST: async(s,r)=>resets.resetToStarting(s,await readBody(r)) },
+  'chat-mentions': {
+    GET: (s) => chat.mentions(s),
+    POST: async (s, r) => {
+      const ids = (await readBody(r)).ids;
+      if (!Array.isArray(ids) || ids.length > 50 || ids.some((id) => typeof id !== 'string' || !/^\d+$/.test(id))) throw new HttpError(400, 'Choose up to 50 mentions');
+      await chat.readMentions(s, ids);
+      return { ok: true };
+    },
+  },
   'chat-pins': { POST: async(s,r)=>chat.pin(s,await readBody(r)) },
   'chat-conversations': { GET: s=>chat.conversations(s) },
   presence: { POST: async(s,r)=>chat.heartbeat(s,await readBody(r)) },

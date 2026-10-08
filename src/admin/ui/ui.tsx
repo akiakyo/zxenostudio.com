@@ -693,15 +693,17 @@ type ConfirmOptions = {
 };
 /* An optional button on a toast, e.g. "Undo". */
 type ToastAction = { label: string; onAction: () => void };
+/* a second line, an icon, and how long it stays (ms) */
+type ToastExtra = { description?: string; icon?: ReactNode; duration?: number; silent?: boolean };
 type Ui = {
-  toast: (message: string, tone?: "success" | "error", action?: ToastAction) => void;
+  toast: (message: string, tone?: "success" | "error", action?: ToastAction, extra?: ToastExtra) => void;
   confirm: (options: ConfirmOptions) => Promise<boolean>;
 };
 const UiContext = createContext<Ui | null>(null);
 
 export function UiProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<
-    { id: number; message: string; tone: "success" | "error"; action?: ToastAction }[]
+    { id: number; message: string; tone: "success" | "error"; action?: ToastAction; extra?: ToastExtra }[]
   >([]);
   const [pending, setPending] = useState<
     (ConfirmOptions & { resolve: (ok: boolean) => void }) | null
@@ -709,10 +711,10 @@ export function UiProvider({ children }: { children: ReactNode }) {
 
   /* each toast burns down its own fuse and can be swiped away; it removes
      itself from the list once it has finished leaving */
-  const toast = useCallback<Ui["toast"]>((message, tone = "success", action) => {
+  const toast = useCallback<Ui["toast"]>((message, tone = "success", action, extra) => {
     const id = Date.now() + Math.random();
-    (tone === "error" ? sfx.error : sfx.success)();
-    setToasts((list) => [...list.slice(-2), { id, message, tone, action }]);
+    if (!extra?.silent) (tone === "error" ? sfx.error : sfx.success)();
+    setToasts((list) => [...list.slice(-2), { id, message, tone, action, extra }]);
   }, []);
   const dismiss = useCallback((id: number) => {
     setToasts((list) => list.filter((t) => t.id !== id));
@@ -738,11 +740,14 @@ export function UiProvider({ children }: { children: ReactNode }) {
             key={t.id}
             inline
             title={t.message}
+            description={t.extra?.description}
+            icon={t.extra?.icon}
+            closeButton={!!t.extra?.description}
             className={`toast-${t.tone}`}
             background={t.tone === "error" ? "var(--red)" : "var(--text)"}
             color={t.tone === "error" ? "var(--card)" : "var(--bg)"}
             fuseColor={t.tone === "error" ? "var(--card)" : "var(--accent)"}
-            duration={t.tone === "error" ? 6000 : 4000}
+            duration={t.extra?.duration ?? (t.tone === "error" ? 6000 : 4000)}
             width={360}
             actionLabel={t.action?.label}
             onAction={t.action?.onAction}

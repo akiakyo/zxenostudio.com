@@ -540,3 +540,56 @@ test('a checklist can be built with a new task and ticked off in the editor',asy
  await expect(row.locator('.checklist-count')).toHaveText(/1\/2/);
  expect(errors).toEqual([]);
 });
+
+test('chat mentions: who gets notified, emails, and reading them',async()=>{
+ const sent:any[]=[];const realFetch=globalThis.fetch;const realKey=process.env.RESEND_API_KEY;process.env.RESEND_API_KEY='re_test_not_a_real_key';
+ globalThis.fetch=(async(_u:any,init:any)=>{sent.push(JSON.parse(init.body));return new Response('{}',{status:200});}) as any;
+ try{
+  await db.query(`UPDATE admin_users SET email='member@example.com' WHERE username='member.test'`);
+  await db.query(`UPDATE admin_users SET email='' WHERE username='other.test'`);
+  /* a channel: named teammates, not the author, not strangers, not emails */
+  const m=await create('chat',{body:'Thanks @member.test and @other.test! cc @nobody.here, mail a@b.com. Also @exec.test',channel:'general'},'exec.test');
+  const mine=(await request('chat-mentions','GET',undefined,'member.test')).data;
+  expect(mine.map((x:any)=>x.id)).toContain(m.id);expect(mine[0].place).toBe('#general');expect(mine[0].link).toBe('channel=general');
+  expect((await request('chat-mentions','GET',undefined,'other.test')).data.some((x:any)=>x.id===m.id)).toBeTruthy();
+  expect((await request('chat-mentions','GET',undefined,'exec.test')).data.some((x:any)=>x.id===m.id)).toBeFalsy();
+  /* only people with an email get one */
+  await new Promise(r=>setTimeout(r,50));
+  const mails=sent.filter(x=>String(x.subject).includes('mentioned you'));
+  expect(mails.map(x=>x.to[0])).toEqual(['member@example.com']);expect(mails[0].text).toContain('/chat?channel=general');
+  /* it shows in notifications, and clearing it there marks it read */
+  const n=(await request('notifications','GET',undefined,'member.test')).data.find((x:any)=>x.id==='m'+m.id);
+  expect(n.action).toBe('mentioned you in');expect(n.read).toBe(false);
+  await request('notifications','POST',{ids:['m'+m.id]},'member.test');
+  expect((await request('chat-mentions','GET',undefined,'member.test')).data.some((x:any)=>x.id===m.id)).toBeFalsy();
+  /* a direct message only notifies the other person in it */
+  const dm=await create('chat',{body:'@member.test @other.test quick one',recipient:'member.test'},'exec.test');
+  expect((await request('chat-mentions','GET',undefined,'other.test')).data.some((x:any)=>x.id===dm.id)).toBeFalsy();
+  const toMember=(await request('chat-mentions','GET',undefined,'member.test')).data.find((x:any)=>x.id===dm.id);expect(toMember.link).toBe('dm=exec.test');
+  /* opening the conversation reads its mentions */
+  await request('chat?recipient=exec.test','GET',undefined,'member.test');
+  expect((await request('chat-mentions','GET',undefined,'member.test')).data.some((x:any)=>x.id===dm.id)).toBeFalsy();
+ }finally{globalThis.fetch=realFetch;if(realKey===undefined)delete process.env.RESEND_API_KEY;else process.env.RESEND_API_KEY=realKey;}
+});
+
+test('a mention pops a swipe toast that opens the message, and @ suggests teammates',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await create('chat',{body:'@exec.test can you review the poster today?',channel:'design'},'member.test');
+ await mount(page,'/tasks/mine');
+ const toast=page.locator('.swipe-toast',{hasText:'mentioned you'});
+ await expect(toast).toBeVisible({timeout:10000});await expect(toast).toContainText('#design');
+ await page.screenshot({path:'test-results/mention-toast.png'});
+ await toast.getByRole('button',{name:'Open'}).click();
+ await expect(page).toHaveURL(/\/chat\?channel=design/);
+ const msg=page.locator('.chat-message.mentions-me',{hasText:'can you review the poster'});await expect(msg).toBeVisible();
+ await expect(msg.locator('.chat-mention.is-me')).toHaveText('@exec.test');
+ /* the @ picker */
+ const box=page.getByLabel('Message #design');
+ await box.fill('thanks @mem');await expect(page.getByRole('listbox',{name:'Mention someone'})).toBeVisible();await page.waitForTimeout(400);
+ await page.screenshot({path:'test-results/mention-picker.png'});
+ await box.press('Enter');await expect(box).toHaveValue('thanks @member.test ');
+ await box.press('Enter');await expect(page.locator('.chat-mention',{hasText:'@member.test'}).last()).toBeVisible();
+ /* no toast again after a reload */
+ await page.reload();await page.waitForTimeout(2500);await expect(page.locator('.swipe-toast',{hasText:'mentioned you'})).toHaveCount(0);
+ expect(errors).toEqual([]);
+});

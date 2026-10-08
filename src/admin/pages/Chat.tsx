@@ -120,8 +120,16 @@ function clock(timestamp: string) {
   });
 }
 
-/* plain text with web links made clickable */
-function MessageBody({ text }: { text: string }) {
+/* "@aquio.zxeno", matching the server's rule in api/_lib/chat.ts */
+const MENTION = /(^|[^\w.@])@([a-z0-9][a-z0-9._-]{0,63})/gi;
+
+export function mentionsOf(text: string): string[] {
+  return [...text.matchAll(MENTION)].map((m) => m[2].toLowerCase().replace(/[._-]+$/, ""));
+}
+
+/* plain text with web links made clickable and @mentions of teammates
+   highlighted, most strongly when they name the reader */
+function MessageBody({ text, people, me }: { text: string; people: Map<string, string>; me: string }) {
   const parts = text.split(/(https?:\/\/[^\s<]+)/g);
   return (
     <p className="chat-text">
@@ -131,11 +139,36 @@ function MessageBody({ text }: { text: string }) {
             {part}
           </a>
         ) : (
-          <Fragment key={i}>{part}</Fragment>
+          <Fragment key={i}>{withMentions(part, people, me)}</Fragment>
         ),
       )}
     </p>
   );
+}
+
+function withMentions(text: string, people: Map<string, string>, me: string) {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(MENTION)) {
+    const raw = match[2];
+    const username = raw.toLowerCase().replace(/[._-]+$/, "");
+    if (!people.has(username)) continue;
+    const start = match.index! + match[1].length;
+    const end = start + 1 + username.length;
+    out.push(text.slice(last, start));
+    out.push(
+      <span
+        key={start}
+        className={`chat-mention ${username === me ? "is-me" : ""}`}
+        title={people.get(username)}
+      >
+        @{text.slice(start + 1, end)}
+      </span>,
+    );
+    last = end;
+  }
+  out.push(text.slice(last));
+  return out;
 }
 
 type ComposerHandle = { insert: (text: string, onNewLine?: boolean) => void; focus: () => void };
@@ -146,9 +179,46 @@ const Composer = forwardRef<ComposerHandle, {
   title: string;
   onSend: (body: string) => Promise<boolean>;
   onAttach: () => void;
-}>(function Composer({ title, onSend, onAttach }, ref) {
+  /* who can be @mentioned here: the people in this room */
+  members: ChatMember[];
+  me: string;
+}>(function Composer({ title, onSend, onAttach, members, me }, ref) {
   const [draft, setDraft] = useState("");
   const input = useRef<HTMLTextAreaElement>(null);
+  /* the "@name" being typed just before the caret, and the highlighted pick */
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [pick, setPick] = useState(0);
+  const matches = mention
+    ? members
+        .filter((m) => m.username !== me)
+        .filter((m) => {
+          const q = mention.query.toLowerCase();
+          return m.username.toLowerCase().includes(q) || (m.name || "").toLowerCase().includes(q);
+        })
+        .slice(0, 6)
+    : [];
+
+  function findMention(el: HTMLTextAreaElement) {
+    const before = el.value.slice(0, el.selectionStart ?? el.value.length);
+    const match = /(^|\s)@([\w.-]{0,64})$/.exec(before);
+    setMention(match ? { start: before.length - match[2].length - 1, query: match[2] } : null);
+    setPick(0);
+  }
+
+  function choose(member: ChatMember) {
+    const el = input.current;
+    if (!el || !mention) return;
+    const caret = el.selectionStart ?? draft.length;
+    const next = `${draft.slice(0, mention.start)}@${member.username} ${draft.slice(caret)}`;
+    const at = mention.start + member.username.length + 2;
+    setDraft(next);
+    setMention(null);
+    sfx.pop();
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(at, at);
+    });
+  }
 
   useImperativeHandle(ref, () => ({
     insert: (text, onNewLine) =>
@@ -176,6 +246,27 @@ const Composer = forwardRef<ComposerHandle, {
 
   return (
     <form className="chat-composer" onSubmit={submit}>
+      {matches.length > 0 && (
+        <ul id="chat-mention-list" className="chat-mention-list" role="listbox" aria-label="Mention someone">
+          {matches.map((m, i) => (
+            <li
+              key={m.username}
+              id={`chat-mention-${m.username}`}
+              role="option"
+              aria-selected={i === pick}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                choose(m);
+              }}
+              onMouseEnter={() => setPick(i)}
+            >
+              <Avatar name={m.name || m.username} size={24} status={m.presence} />
+              <strong>{m.name || m.username}</strong>
+              <span className="muted">@{m.username}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <IconButton icon={Paperclip} label="Attach asset link" onClick={onAttach} />
       <label htmlFor="chat-input" className="sr-only">Message {title}</label>
       <textarea
@@ -185,11 +276,34 @@ const Composer = forwardRef<ComposerHandle, {
         value={draft}
         maxLength={4000}
         placeholder={`Message ${title}`}
+        aria-autocomplete="list"
+        aria-controls={matches.length ? "chat-mention-list" : undefined}
+        aria-activedescendant={matches.length ? `chat-mention-${matches[pick]?.username}` : undefined}
         onChange={(e) => {
           setDraft(e.target.value);
           grow(e.target);
+          findMention(e.target);
         }}
+        onClick={(e) => findMention(e.currentTarget)}
+        onBlur={() => setTimeout(() => setMention(null), 120)}
         onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+          if (matches.length) {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              setPick((p) => (p + (event.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length);
+              return;
+            }
+            if ((event.key === "Enter" || event.key === "Tab") && !event.shiftKey) {
+              event.preventDefault();
+              choose(matches[pick] ?? matches[0]);
+              return;
+            }
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setMention(null);
+              return;
+            }
+          }
           if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
             event.preventDefault();
             void submit();
@@ -390,7 +504,9 @@ function Conversation({
   const matchesFilter=(message:ChatMessage)=>
     (!q||message.body.toLowerCase().includes(q.toLowerCase()))&&(!pins||message.pinned);
   const [attach,setAttach]=useState(false);const assets=useApi<Asset[]>(attach?'assets':null);
-  const { session, isExecutive, memberName } = useWorkspace();
+  const { session, isExecutive, memberName, team } = useWorkspace();
+  /* everyone a message could @mention, for highlighting */
+  const people = new Map(team.map((m) => [m.username, m.name || m.username]));
   const [room,setRoom]=useState<{id:string;name:string;code:string}|null>(null);
   const title=project?(room?`#${projectChannel(room.name)}`:'Project room'):recipient?memberName(recipient):`#${channel}`;
   const run = useAction();
@@ -735,7 +851,7 @@ function Conversation({
                       <span>{dayLabel(day)}</span>
                     </div>
                   )}
-                  <article className={`chat-message ${grouped ? "is-grouped" : ""} ${picker?.id === message.id ? "is-active" : ""}`}>
+                  <article className={`chat-message ${grouped ? "is-grouped" : ""} ${picker?.id === message.id ? "is-active" : ""} ${mentionsOf(message.body).includes(session.username) ? "mentions-me" : ""}`}>
                     <div className="chat-gutter">
                       {grouped ? (
                         <time className="chat-hover-time" dateTime={message.createdAt}>
@@ -756,7 +872,7 @@ function Conversation({
                           </time>
                         </header>
                       )}
-                      <MessageBody text={message.body} />
+                      <MessageBody text={message.body} people={people} me={session.username} />
                       {message.reactions.length > 0 && (
                         <div className="chat-reactions">
                           {message.reactions.map((r) => {
@@ -826,7 +942,7 @@ function Conversation({
             </button>
           )}
 
-          <Composer ref={composer} title={title} onSend={send} onAttach={() => setAttach(true)} />
+          <Composer ref={composer} title={title} onSend={send} onAttach={() => setAttach(true)} members={members} me={session.username} />
         </div>
 
         {showMembers && (
