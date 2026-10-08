@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
+import { sfx } from '../../lib/sound';
 import './HoldButton.css';
 
 export type HoldButtonSize = 'sm' | 'md' | 'lg';
@@ -127,6 +128,7 @@ const HoldButton: React.FC<HoldButtonProps> = ({
     if (performance.now() - gesture.current.start < holdTime - 50) return;
     clearTimers();
     go('done', inputRef.current);
+    sfx.confirm();
     onHold?.();
     if (resetAfter > 0) {
       timers.current.reset = window.setTimeout(() => {
@@ -282,6 +284,7 @@ const HoldButton: React.FC<HoldButtonProps> = ({
       disabled={disabled}
       className={`hold-button hold-button--${size}${className ? ` ${className}` : ''}`}
       data-phase={phase}
+      data-sfx="own"
       data-input={input ?? undefined}
       data-direction={direction}
       data-glow={glow ? 'true' : undefined}

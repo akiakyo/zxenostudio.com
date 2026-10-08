@@ -9,6 +9,7 @@ import {
   type MotionStyle
 } from 'motion/react';
 import { Bell } from 'lucide-react';
+import { sfx } from '../../lib/sound';
 import './BellToggle.css';
 
 export type BellToggleSize = 'sm' | 'md' | 'lg';
@@ -187,6 +188,7 @@ const BellToggle: React.FC<BellToggleProps> = ({
 
   const toggle = () => {
     pending.current = lastInput.current;
+    if (on) sfx.off();
     if (pressed === undefined) setInner(!on);
     onChange?.(!on);
   };
@@ -232,6 +234,7 @@ const BellToggle: React.FC<BellToggleProps> = ({
       <button
         type="button"
         className="bell-toggle__button"
+        data-sfx="own"
         aria-pressed={on}
         aria-label={label ?? offLabel}
         disabled={disabled}

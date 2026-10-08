@@ -2,6 +2,7 @@ import React, { useEffect, useId, useLayoutEffect, useRef, useState, type CSSPro
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react';
 import { Trash2 } from 'lucide-react';
 
+import { sfx } from '../../lib/sound';
 import './SwipeRow.css';
 
 const HYST = 10;
@@ -246,6 +247,7 @@ const SwipeRow: React.FC<SwipeRowProps> = ({
     /* an auto-height row needs a fixed height to collapse from */
     if (height === 'auto' && root.current) root.current.style.height = `${root.current.offsetHeight}px`;
     setPhase('committing');
+    sfx.swipe();
     setSay(a.label);
     setOpen(false);
     const fold = () => {

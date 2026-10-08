@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { logout, post, useApi } from "./lib/api";
+import { sfx } from "./lib/sound";
 import { Link, useLocation } from "./lib/router";
 import { useWorkspace } from "./lib/workspace";
 import { Avatar } from "./ui/ui";
@@ -175,6 +176,23 @@ export function Shell() {
     }, 60000);
     return () => clearInterval(timer);
   }, [reloadBadges, path]);
+
+  /* A soft tap for every button, link-button, tab and menu item, by mouse,
+     touch or keyboard. Controls that make their own sound (checkboxes, fuse
+     and hold buttons, the bell) carry data-sfx and are left to it. */
+  useEffect(() => {
+    const tap = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const control = target?.closest<HTMLElement>(
+        'button, a.btn, a.nav-link, [role="button"], [role="radio"], [role="tab"], [role="menuitem"]',
+      );
+      if (!control || control.closest("[data-sfx]")) return;
+      if ((control as HTMLButtonElement).disabled || control.getAttribute("aria-disabled") === "true") return;
+      sfx.tap();
+    };
+    document.addEventListener("click", tap, true);
+    return () => document.removeEventListener("click", tap, true);
+  }, []);
 
   /* Presence heartbeat for the whole workspace, not just the chat page.
      "Active" means the tab is visible and this person has done something in

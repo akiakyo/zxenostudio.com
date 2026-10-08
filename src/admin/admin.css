@@ -4396,3 +4396,146 @@ a.hero-tile:hover {
     display: none;
   }
 }
+.sound-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---------- Motion: fade-blur entrances and springy buttons ----------
+   Entrances use fill-mode "backwards" and end on filter/transform "none", so
+   once they finish nothing is left on the element. A lingering filter or
+   transform would become the containing block for the fixed-position menus
+   inside and throw them off. Everything here is skipped for people who ask
+   their device for less motion. */
+@keyframes fade-blur-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: scale(0.94);
+  }
+  70% {
+    opacity: 1;
+    filter: none;
+    transform: scale(1.015);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Each page and its sections arrive in a short cascade. Pages remount on
+     every route change, so this plays on each navigation. */
+  .content > .page > *,
+  .content > .page-narrow > * {
+    animation: fade-blur-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .content > .page > :nth-child(2) { animation-delay: 0.04s; }
+  .content > .page > :nth-child(3) { animation-delay: 0.08s; }
+  .content > .page > :nth-child(4) { animation-delay: 0.12s; }
+  .content > .page > :nth-child(5) { animation-delay: 0.16s; }
+  .content > .page > :nth-child(6) { animation-delay: 0.2s; }
+  .content > .page > :nth-child(n + 7) { animation-delay: 0.24s; }
+
+  /* cards and rows inside grids and lists follow one after another */
+  .dash-grid > *,
+  .team-grid > *,
+  .inquiry-list > *,
+  .notification-list > *,
+  .board-column,
+  .sk-grid > *,
+  .quick-actions > *,
+  .stats > *,
+  .stat-grid > * {
+    animation: fade-blur-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  :is(.dash-grid, .team-grid, .inquiry-list, .notification-list, .quick-actions, .stats, .stat-grid) > :nth-child(2) { animation-delay: 0.05s; }
+  :is(.dash-grid, .team-grid, .inquiry-list, .notification-list, .quick-actions, .stats, .stat-grid) > :nth-child(3) { animation-delay: 0.1s; }
+  :is(.dash-grid, .team-grid, .inquiry-list, .notification-list, .quick-actions, .stats, .stat-grid) > :nth-child(4) { animation-delay: 0.15s; }
+  :is(.dash-grid, .team-grid, .inquiry-list, .notification-list, .quick-actions, .stats, .stat-grid) > :nth-child(5) { animation-delay: 0.2s; }
+  :is(.dash-grid, .team-grid, .inquiry-list, .notification-list, .quick-actions, .stats, .stat-grid) > :nth-child(n + 6) { animation-delay: 0.25s; }
+  .table tbody tr {
+    animation: fade-blur-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .table tbody tr:nth-child(2) { animation-delay: 0.03s; }
+  .table tbody tr:nth-child(3) { animation-delay: 0.06s; }
+  .table tbody tr:nth-child(4) { animation-delay: 0.09s; }
+  .table tbody tr:nth-child(5) { animation-delay: 0.12s; }
+  .table tbody tr:nth-child(n + 6) { animation-delay: 0.15s; }
+
+  /* dialogs, menus and the sign-in card pop in from a soft blur */
+  .modal[open] {
+    animation: pop-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .modal[open]::backdrop {
+    animation: backdrop-in 0.3s ease backwards;
+  }
+  .menu-list {
+    transform-origin: top right;
+    animation: pop-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .auth-card {
+    animation: pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  /* Buttons pop: a springy lift on hover, a squeeze on press, and a quick
+     bounce back on release. */
+  .btn,
+  .icon-btn,
+  .nav-link,
+  .quick-action,
+  .hq-tools .btn {
+    transition:
+      transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.22s ease,
+      background 0.15s,
+      border-color 0.15s,
+      color 0.15s;
+  }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.035);
+    box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--text) 35%, transparent);
+  }
+  .icon-btn:hover:not(:disabled) {
+    transform: scale(1.12);
+  }
+  .quick-action:hover {
+    transform: translateY(-3px);
+  }
+  .nav-link:hover:not([aria-current="page"]) {
+    transform: translateX(3px);
+  }
+  .btn:active:not(:disabled),
+  .icon-btn:active:not(:disabled),
+  .quick-action:active {
+    transform: scale(0.94);
+    transition-duration: 0.08s;
+  }
+  /* badges and counts pop as they appear */
+  .nav-badge,
+  .unread-dot,
+  .tab-count {
+    animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  }
+}

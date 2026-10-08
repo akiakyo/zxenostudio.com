@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { animate, useMotionValue, useMotionValueEvent, useReducedMotion } from 'motion/react';
 
+import { sfx } from '../../lib/sound';
 import './SpringCheck.css';
 
 export type StrikeSide = 'left' | 'center' | 'right' | 'none';
@@ -134,6 +135,7 @@ const SpringCheck: React.FC<SpringCheckProps> = ({
     instant.current = !viaPointer.current;
     viaPointer.current = false;
     const next = !on;
+    (next ? sfx.check : sfx.uncheck)();
     if (!controlled) setInner(next);
     onChange?.(next);
   };
@@ -162,6 +164,7 @@ const SpringCheck: React.FC<SpringCheckProps> = ({
       ref={rowRef}
       type="button"
       role="checkbox"
+      data-sfx="own"
       aria-checked={on}
       aria-label={ariaLabel}
       disabled={disabled}

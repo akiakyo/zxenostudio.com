@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Archive, Check, Undo2 } from 'lucide-react';
 
+import { sfx } from '../../lib/sound';
 import './FuseButton.css';
 
 export type FusePosition = 'outline' | 'bottom' | 'top';
@@ -126,6 +127,7 @@ const FuseButton: React.FC<FuseButtonProps> = ({
     if (from) a.currentTime = from;
     a.onfinish = () => {
       const l = latest.current;
+      sfx.remove();
       l.onFuseEnd?.();
       if (l.commitOn === 'fuseEnd') l.onCommit?.('fuseEnd');
       lastInput.current = 'pointer';
@@ -141,6 +143,7 @@ const FuseButton: React.FC<FuseButtonProps> = ({
     light();
     pause.current.canHoverPause = false;
     pause.current.hover = false;
+    sfx.tap();
     if (commitOn === 'press') onCommit?.('press');
     go('armed');
   };
@@ -152,6 +155,7 @@ const FuseButton: React.FC<FuseButtonProps> = ({
       a.onfinish = null;
       a.pause();
     }
+    sfx.undo();
     onUndo?.();
     go('idle');
   };
@@ -231,6 +235,7 @@ const FuseButton: React.FC<FuseButtonProps> = ({
       tabIndex={-1}
       className={`fuse-button${className ? ` ${className}` : ''}`}
       data-phase={phase}
+      data-sfx="own"
       data-fuse={fuse}
       data-instant={instant ? '' : undefined}
       aria-disabled={phase === 'settled' || undefined}

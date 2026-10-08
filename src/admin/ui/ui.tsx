@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Ellipsis, Trash2, X } from "lucide-react";
 import { initials, label } from "../lib/format";
+import { sfx } from "../lib/sound";
 import FuseButton from "./micro/FuseButton";
 import HoldButton from "./micro/HoldButton";
 import RubberSegment from "./micro/RubberSegment";
@@ -710,6 +711,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
      itself from the list once it has finished leaving */
   const toast = useCallback<Ui["toast"]>((message, tone = "success", action) => {
     const id = Date.now() + Math.random();
+    (tone === "error" ? sfx.error : sfx.success)();
     setToasts((list) => [...list.slice(-2), { id, message, tone, action }]);
   }, []);
   const dismiss = useCallback((id: number) => {

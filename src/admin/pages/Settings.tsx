@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Lock, Monitor, Moon, Sun } from "lucide-react";
+import { Lock, Monitor, Moon, MousePointerClick, Sun } from "lucide-react";
 import { patch, useApi } from "../lib/api";
 import type { Member } from "../lib/types";
-import { chime, setSoundOn, soundOn } from "../lib/sound";
+import { chime, setSfxOn, setSoundOn, sfx, sfxOn, soundOn } from "../lib/sound";
 import { useWorkspace } from "../lib/workspace";
 import BellToggle from "../ui/micro/BellToggle";
 import RubberSegment from "../ui/micro/RubberSegment";
@@ -55,6 +55,7 @@ export function SettingsPage() {
   const [formError, setFormError] = useState("");
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [sound, setSound] = useState<boolean>(soundOn);
+  const [buttonSounds, setButtonSounds] = useState<boolean>(sfxOn);
 
   useEffect(() => {
     if (data) {
@@ -159,13 +160,15 @@ export function SettingsPage() {
 
       <Panel title="Sound">
         <p className="hint">
-          A short tone for new chat messages and new notifications. This is remembered on this
-          device only.
+          Notification sounds are a short tone for new chat messages and notifications. Interface
+          sounds are soft taps and clicks for buttons, sent messages, checked tasks, deletes and
+          errors. Both are remembered on this device only.
         </p>
+        <div className="sound-toggles">
         <BellToggle
           label="Notification sounds"
-          offLabel="Sounds off"
-          onLabel="Sounds on"
+          offLabel="Notification sounds off"
+          onLabel="Notification sounds on"
           pressed={sound}
           onChange={(value) => {
             setSound(value);
@@ -174,6 +177,19 @@ export function SettingsPage() {
             if (value) chime.notification();
           }}
         />
+        <BellToggle
+          label="Interface sounds"
+          offLabel="Interface sounds off"
+          onLabel="Interface sounds on"
+          icon={<MousePointerClick size={16} aria-hidden />}
+          pressed={buttonSounds}
+          onChange={(value) => {
+            setButtonSounds(value);
+            setSfxOn(value);
+            if (value) sfx.success();
+          }}
+        />
+        </div>
       </Panel>
       <p className="hint session-hint">Signed in as @{session.username}. Sessions last 8 hours.</p>
     </div>

@@ -37,7 +37,7 @@ import {
 import { api, del, post, query, useApi } from "../lib/api";
 import { presenceLabel, todayIso } from "../lib/format";
 import type { ChatMember, ChatMessage, ChatPage } from "../lib/types";
-import { chime } from "../lib/sound";
+import { chime, sfx } from "../lib/sound";
 import { useWorkspace } from "../lib/workspace";
 import { Avatar, Badge, ErrorNote, IconButton, Loading, Button, Modal, SearchInput, useAction, useUi, useDebounced } from "../ui/ui";
 import { navigate, useLocation } from '../lib/router';
@@ -543,6 +543,7 @@ function Conversation({
       post<ChatMessage>("chat", project ? { body, project } : { body, channel, recipient }),
     );
     if (!message) return false;
+    sfx.sent();
     scrollMode.current = "bottom";
     /* the search or pinned filter would hide what was just sent, which reads
        as the message never arriving; drop the filter and show it instead */
@@ -553,6 +554,7 @@ function Conversation({
 
   async function react(message: ChatMessage, reaction: string) {
     setPicker(null);
+    sfx.pop();
     /* show it straight away, then settle on what the server says */
     setMessages((current) =>
       current.map((m) => {

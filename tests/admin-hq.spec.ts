@@ -216,10 +216,10 @@ test('presence moves from active to idle to offline',async()=>{
  await db.query(`UPDATE admin_users SET last_seen_at = now() - interval '10 minutes' WHERE username='other.test'`);
  expect(who((await request('team')).data)).toBe('offline');
 });
-test('a tone plays for someone else’s message but not your own',async({page})=>{
- /* count oscillators instead of listening: the page cannot make real sound here */
+test('your own message makes a sent sound; someone else’s plays the message tone',async({page})=>{
+ /* count oscillators and read the sound log instead of listening: the page cannot make real sound here */
  await page.addInitScript(()=>{
-  (window as any).__tones=0;
+  (window as any).__tones=0;(window as any).__sfxLog=[];
   class FakeContext{
    state='running';currentTime=0;destination={};
    resume(){return Promise.resolve();}
@@ -233,17 +233,24 @@ test('a tone plays for someone else’s message but not your own',async({page})=
  await page.waitForTimeout(600);
  const tones=()=>page.evaluate(()=>(window as any).__tones as number);
  const before=await tones();
- /* your own message: no sound */
+ const log=()=>page.evaluate(()=>(window as any).__sfxLog as string[]);
+ /* your own message: the sent sound, never the incoming-message tone */
  const box=page.getByLabel('Message #wins');
  await box.fill('my own message');await box.press('Enter');
  await expect(page.getByText('my own message')).toBeVisible();
  await page.waitForTimeout(2500);
- expect(await tones()).toBe(before);
- /* somebody else posting into the same room: a sound */
+ expect(await log()).toContain('sent');expect(await log()).not.toContain('message');
+ expect(await tones()).toBeGreaterThan(before);
+ /* somebody else posting into the same room: the message tone */
  await create('chat',{body:'from a teammate',channel:'wins'},'member.test');
  await expect(page.getByText('from a teammate')).toBeVisible();
  await page.waitForTimeout(400);
- expect(await tones()).toBeGreaterThan(before);
+ expect(await log()).toContain('message');
+ /* interface sounds can be switched off on their own */
+ await page.evaluate(()=>localStorage.setItem('zxeno-admin-sfx','off'));
+ const sentBefore=(await log()).filter(n=>n==='sent').length;
+ await box.fill('quiet now');await box.press('Enter');await expect(page.getByText('quiet now')).toBeVisible();
+ expect((await log()).filter(n=>n==='sent').length).toBe(sentBefore);
 });
 test('a hidden tab still hears a message and keeps its unread badge',async({page})=>{
  await page.addInitScript(()=>{
@@ -458,4 +465,32 @@ test('the sign-in page offers a forgot-password flow',async({page})=>{
  await page.screenshot({path:'test-results/forgot-sent.png'});
  await page.goto('/reset-password#not-a-real-token-value-123');await expect(page.getByText(/expired or was already used/)).toBeVisible();
  expect(page.url()).not.toContain('#');
+});
+
+test('interface sounds: taps, checks, fuse undo and hold to confirm',async({page})=>{
+ await page.addInitScript(()=>{
+  (window as any).__sfxLog=[];
+  class FakeContext{
+   state='running';currentTime=0;destination={};
+   resume(){return Promise.resolve();}
+   createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(n:any){return n;}};}
+   createOscillator(){return {type:'',frequency:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(n:any){return n;},start(){},stop(){}};}
+  }
+  (window as any).AudioContext=FakeContext;
+ });
+ await create('tasks',{title:'Sound check task',status:'todo',assignee:'exec.test'});
+ await db.query(`INSERT INTO admin_inquiries(name,email,message) VALUES('Cara Lim','cara@example.com','Poster series')`);
+ const log=()=>page.evaluate(()=>(window as any).__sfxLog as string[]);
+ await mount(page,'/tasks/mine');await expect(page.getByText('Sound check task')).toBeVisible();
+ await page.getByRole('button',{name:'Search'}).click();await page.keyboard.press('Escape');
+ expect(await log()).toContain('tap');
+ await page.getByRole('checkbox',{name:'Done: Sound check task'}).click();
+ await expect.poll(log).toContain('check');
+ await page.goto('/inquiries');const card=page.locator('.inquiry-card',{hasText:'Cara Lim'});
+ await card.getByRole('button',{name:'Archive'}).click();await card.getByRole('button',{name:'Undo'}).click();
+ await expect.poll(log).toContain('undo');
+ await card.getByRole('button',{name:/More actions/}).click();await page.getByRole('menuitem',{name:'Delete'}).click();
+ const hold=page.getByRole('dialog').getByRole('button',{name:/Hold to delete/});await hold.hover();await page.mouse.down();await page.waitForTimeout(1200);await page.mouse.up();
+ await expect.poll(log).toContain('confirm');
+ expect((await log()).filter(n=>n==='tap').length).toBeGreaterThan(1);
 });
