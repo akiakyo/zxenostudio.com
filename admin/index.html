@@ -21,9 +21,38 @@
       })();
     </script>
     <link rel="icon" href="/assets/mark.svg" type="image/svg+xml" />
+    <style>
+      /* Shown from the first paint until the app's JavaScript replaces it:
+         the workspace outline for someone who was signed in on this device,
+         an empty page in the right colour for everyone else. Colours are
+         copies of --bg / --card / --line in admin.css, which isn't loaded yet. */
+      html { background: #efeee8; }
+      html[data-theme="dark"] { background: #0b100a; }
+      .boot { display: none; min-height: 100vh; }
+      html[data-boot="shell"] .boot { display: flex; }
+      .boot-side { width: 256px; flex: none; padding: 24px 18px; background: #fbfaf6; border-right: 1px solid rgba(15, 30, 9, 0.12); }
+      .boot-main { flex: 1; padding: 40px 32px; }
+      .boot i { display: block; height: 12px; margin: 0 0 16px; border-radius: 999px; background: rgba(15, 30, 9, 0.08); }
+      .boot .h { height: 34px; width: min(340px, 70%); margin: 14px 0 28px; border-radius: 10px; }
+      html[data-theme="dark"] .boot-side { background: #131a12; border-color: rgba(232, 236, 227, 0.1); }
+      html[data-theme="dark"] .boot i { background: rgba(232, 236, 227, 0.08); }
+      @media (max-width: 999px) { .boot-side { display: none; } .boot-main { padding: 72px 16px; } }
+    </style>
+    <script>
+      try {
+        if (localStorage.getItem("zxeno-admin-signed-in") === "1") {
+          document.documentElement.dataset.boot = "shell";
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" aria-hidden="true">
+        <div class="boot-side"><i style="width: 120px"></i><i style="width: 60%"></i><i style="width: 70%"></i><i style="width: 55%"></i><i style="width: 65%"></i><i style="width: 50%"></i></div>
+        <div class="boot-main"><i style="width: 120px"></i><i class="h"></i><i style="width: 90%"></i><i style="width: 75%"></i><i style="width: 82%"></i></div>
+      </div>
+    </div>
     <script type="module" src="/src/admin/main.tsx"></script>
   </body>
 </html>

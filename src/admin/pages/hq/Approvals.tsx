@@ -25,7 +25,7 @@ export function ApprovalsPage(){
  const approval=data?.find(a=>a.id===selected);
  return <div className="page"><PageHeader title="Approvals" description="Submit deliverables, review versions and keep feedback with the work." actions={<Button variant="primary" icon={Plus} onClick={()=>editor.openNew()}>Submit for approval</Button>}/>
   <Tabs label="Approval status" value={tab} onChange={setTab} tabs={['pending','revision','approved','all'].map(v=>({value:v,label:`${v==='revision'?'Needs revision':v[0].toUpperCase()+v.slice(1)} (${(data??[]).filter(a=>v==='all'||a.status===v).length})`}))}/>
-  {error&&<ErrorNote message={error} onRetry={reload}/>} {loading&&!data&&<Loading/>}
+  {error&&<ErrorNote message={error} onRetry={reload}/>} {loading&&!data&&<Loading variant="table" />}
   {data&&!list.length&&<EmptyState icon={ShieldCheck} title="No approvals in this view"/>}
   {!!list.length&&<div className="table-wrap"><table className="table"><thead><tr><th>Submission</th><th>Project</th><th>Reviewer</th><th>Version</th><th>Due</th><th>Status</th></tr></thead><tbody>{list.map(a=><tr key={a.id}><td><button className="text-btn cell-title" onClick={()=>setSelected(a.id)}>{a.title}</button></td><td>{a.projectName||'—'}</td><td>{a.reviewerName||a.reviewer}</td><td>v{a.version}</td><td>{a.dueDate?formatDate(a.dueDate):'—'}</td><td><StatusBadge value={a.status}/></td></tr>)}</tbody></table></div>}
   {approval&&<ApprovalDetail key={approval.id} approval={approval} canDecide={isExecutive||approval.reviewer===session.username} canEdit={isExecutive||approval.createdBy===session.username} onClose={()=>setSelected(null)} onEdit={()=>editor.openEdit(approval)} reload={reload}/>}{editor.element}

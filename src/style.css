@@ -2989,3 +2989,35 @@ body:has(.email-dialog[open]) {
     margin-bottom: 28px;
   }
 }
+
+/* Skeleton shimmer behind artwork that is still loading (src/media-skeleton.ts) */
+.media-loading {
+  background-color: color-mix(in srgb, var(--surface-fg, #101710) 7%, var(--surface, #f2f1ec)) !important;
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--surface, #f2f1ec) 55%, transparent) 50%,
+    transparent 70%
+  ) !important;
+  background-size: 220% 100% !important;
+  animation: media-shimmer 1.4s ease-in-out infinite;
+}
+.media-pending {
+  opacity: 0;
+}
+[data-skeleton] {
+  transition: opacity 0.45s ease;
+}
+@keyframes media-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .media-loading {
+    animation: none;
+  }
+}

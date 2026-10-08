@@ -95,6 +95,7 @@ export function Project({
           loop
           preload="none"
           poster={`/media/${project.slug}.webp`}
+          data-skeleton
           data-src={`/media/${project.slug}-preview.mp4`}
         />
         <span className="project-play" aria-hidden="true">

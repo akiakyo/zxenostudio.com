@@ -76,7 +76,7 @@ export function RolesPage() {
         }
       />
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="table" />}
       {data && (
         <Panel title="Members">
           <div className="table-wrap">

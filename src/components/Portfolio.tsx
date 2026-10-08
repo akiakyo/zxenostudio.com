@@ -49,6 +49,7 @@ export function GalleryCard({
           src={`/media/portfolio/${project.slug}-1.png`}
           alt={`${project.name} artwork`}
           loading="lazy"
+          data-skeleton
         />
         <span>
           View project · {project.count} images{" "}
@@ -91,6 +92,7 @@ export function GalleryCard({
           </div>
           <img
             className="gallery-full"
+            data-skeleton
             src={`/media/portfolio/${project.slug}-${frame}.png`}
             alt={`${project.name} — view ${frame}`}
           />

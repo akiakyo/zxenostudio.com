@@ -96,7 +96,7 @@ export function AssetsPage() {
         <SelectFilter label="Folder" allLabel="All folders" value={folder} onChange={setFolder} options={[...new Set((data??[]).map(a=>a.folder).filter(Boolean))].map(f=>({value:f,label:f}))}/>
       </FilterBar>
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="cards" />}
       {data && !data.length && (
         <EmptyState icon={Images} title={q || kind || projectId ? "No assets match" : "The library is empty"}>
           Add links to files in Google Drive, Dropbox or Frame.io so everyone can find them.

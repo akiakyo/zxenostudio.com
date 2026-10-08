@@ -73,7 +73,7 @@ export function ExecutivesPage() {
         description="Money, project health and team workload at a glance."
       />
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="dashboard" />}
       {data && (
         <>
           <section className="stats stats-4" aria-label="Finances">

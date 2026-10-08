@@ -415,6 +415,7 @@ export function Screening() {
             loop
             preload="none"
             poster="/media/redline.webp"
+            data-skeleton
             data-src="/media/redline-preview.mp4"
           ></video>
           <div className="reel-dust" aria-hidden="true" />

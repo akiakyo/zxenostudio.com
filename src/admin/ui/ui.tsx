@@ -264,11 +264,220 @@ export function EmptyState({
   );
 }
 
-export function Loading({ label: text = "Loading" }: { label?: string }) {
+/* A shimmering outline of what is about to appear, shaped like the page that
+   uses it, so the layout doesn't jump when the data lands. Screen readers
+   hear the label; the shapes are decorative. */
+export type SkeletonVariant =
+  | "list"
+  | "cards"
+  | "table"
+  | "board"
+  | "dashboard"
+  | "detail"
+  | "form"
+  | "chat"
+  | "lines";
+
+export function Loading({
+  label: text = "Loading",
+  variant = "list",
+}: {
+  label?: string;
+  variant?: SkeletonVariant;
+}) {
   return (
-    <div className="loading" role="status">
-      <span className="spinner" aria-hidden="true" />
-      {text}…
+    <div className={`skeleton skeleton-${variant}`} role="status" aria-live="polite">
+      <span className="sr-only">{text}…</span>
+      <SkeletonShapes variant={variant} />
+    </div>
+  );
+}
+
+const bar = (width: string, className = "") => (
+  <span className={`sk-bar ${className}`} style={{ width }} />
+);
+
+function SkeletonShapes({ variant }: { variant: SkeletonVariant }) {
+  switch (variant) {
+    case "cards":
+      return (
+        <div className="sk-grid" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div className="sk-card" key={i}>
+              <span className="sk-circle sk-lg" />
+              {bar("60%", "sk-title")}
+              {bar("40%")}
+              {bar("80%")}
+            </div>
+          ))}
+        </div>
+      );
+    case "table":
+      return (
+        <div className="sk-table" aria-hidden="true">
+          <div className="sk-row sk-head">
+            {bar("18%")}
+            {bar("12%")}
+            {bar("14%")}
+            {bar("10%")}
+          </div>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div className="sk-row" key={i}>
+              <span className="sk-cell-main">
+                {bar(`${55 + ((i * 13) % 35)}%`, "sk-title")}
+                {bar("35%")}
+              </span>
+              {bar("12%")}
+              {bar("14%")}
+              {bar("8%")}
+            </div>
+          ))}
+        </div>
+      );
+    case "board":
+      return (
+        <div className="sk-board" aria-hidden="true">
+          {[3, 2, 1].map((count, c) => (
+            <div className="sk-column" key={c}>
+              {bar("45%", "sk-title")}
+              {Array.from({ length: count }, (_, i) => (
+                <div className="sk-card" key={i}>
+                  {bar("75%", "sk-title")}
+                  {bar("40%")}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    case "dashboard":
+      return (
+        <div className="sk-dashboard" aria-hidden="true">
+          {bar("120px")}
+          {bar("min(340px, 70%)", "sk-heading")}
+          <div className="sk-stats">
+            {[0, 1, 2, 3].map((i) => (
+              <div className="sk-card" key={i}>
+                {bar("50%")}
+                {bar("30%", "sk-number")}
+                {bar("65%")}
+              </div>
+            ))}
+          </div>
+          <div className="sk-panels">
+            {[0, 1, 2, 3].map((i) => (
+              <div className="sk-card sk-panel" key={i}>
+                {bar("40%", "sk-title")}
+                {[0, 1, 2].map((j) => (
+                  <span className="sk-line" key={j}>
+                    <span className="sk-circle" />
+                    {bar(`${50 + ((i + j) * 11) % 40}%`)}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    case "detail":
+      return (
+        <div className="sk-detail" aria-hidden="true">
+          {bar("90px")}
+          {bar("min(420px, 80%)", "sk-heading")}
+          {bar("min(260px, 60%)")}
+          {bar("100%", "sk-progress")}
+          <div className="sk-tabs">
+            {bar("70px")}
+            {bar("60px")}
+            {bar("80px")}
+          </div>
+          <div className="sk-card sk-panel">
+            {[0, 1, 2, 3].map((j) => (
+              <span className="sk-line" key={j}>
+                <span className="sk-box" />
+                {bar(`${45 + j * 12}%`)}
+              </span>
+            ))}
+          </div>
+        </div>
+      );
+    case "form":
+      return (
+        <div className="sk-card sk-panel sk-form" aria-hidden="true">
+          {bar("30%", "sk-title")}
+          {[0, 1, 2, 3].map((i) => (
+            <span className="sk-field" key={i}>
+              {bar("22%")}
+              {bar("100%", "sk-input")}
+            </span>
+          ))}
+        </div>
+      );
+    case "chat":
+      return (
+        <div className="sk-chat" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span className={`sk-message ${i % 3 === 2 ? "is-mine" : ""}`} key={i}>
+              <span className="sk-circle" />
+              <span className="sk-bubble">
+                {bar("30%")}
+                {bar(`${45 + ((i * 17) % 45)}%`)}
+              </span>
+            </span>
+          ))}
+        </div>
+      );
+    case "lines":
+      return (
+        <div className="sk-lines" aria-hidden="true">
+          {bar("70%")}
+          {bar("90%")}
+          {bar("55%")}
+        </div>
+      );
+    default:
+      return (
+        <div className="sk-list" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div className="sk-card sk-item" key={i}>
+              <span className="sk-circle" />
+              <span className="sk-cell-main">
+                {bar(`${40 + ((i * 19) % 40)}%`, "sk-title")}
+                {bar(`${25 + ((i * 7) % 30)}%`)}
+              </span>
+              {bar("64px", "sk-pill")}
+            </div>
+          ))}
+        </div>
+      );
+  }
+}
+
+/* The whole workspace frame, for the moment between opening the app and
+   knowing who is signed in. */
+export function ShellSkeleton() {
+  return (
+    <div className="shell skeleton-shell" role="status" aria-live="polite">
+      <span className="sr-only">Loading ZXENO HQ…</span>
+      <aside className="sidebar sk-sidebar" aria-hidden="true">
+        {bar("120px", "sk-title")}
+        {[0, 1, 2].map((g) => (
+          <div className="sk-nav-group" key={g}>
+            {bar("60px")}
+            {[0, 1, 2, 3].map((i) => (
+              <span className="sk-line" key={i}>
+                <span className="sk-box" />
+                {bar(`${45 + ((g + i) * 9) % 35}%`)}
+              </span>
+            ))}
+          </div>
+        ))}
+      </aside>
+      <main className="content">
+        <div className="page">
+          <SkeletonShapes variant="dashboard" />
+        </div>
+      </main>
     </div>
   );
 }

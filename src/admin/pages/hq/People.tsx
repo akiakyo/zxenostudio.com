@@ -20,7 +20,7 @@ export function WorkloadPage(){
   <Tabs label="Workload view" value={tab} onChange={setTab} tabs={[{value:'forecast',label:'Forecast'},{value:'plans',label:'Capacity plans'}]}/>
   {tab==='plans'?<Records config={{...capacityConfig,columns:capacityConfig.columns.map((c,i)=>i===0?{...c,render:r=>memberName(r.member)}:c)}}/>:<>
    <div className="toolbar"><Button onClick={()=>setStart(addDays(start,-7))}>Previous week</Button><Button onClick={()=>setStart(weekStart(todayIso()))}>This week</Button><Button onClick={()=>setStart(addDays(start,7))}>Next week</Button></div>
-   {error&&<ErrorNote message={error} onRetry={reload}/>} {loading&&!data&&<Loading/>}
+   {error&&<ErrorNote message={error} onRetry={reload}/>} {loading&&!data&&<Loading variant="table" />}
    <Panel><div className="table-wrap"><table className="table"><thead><tr><th>Person</th>{weeks.map(w=><th key={w}>{formatDate(w)}</th>)}</tr></thead><tbody>{team.map(m=><tr key={m.username}><td>{m.name}</td>{weeks.map(w=>{const r=data?.find(r=>r.member===m.username&&r.weekOf===w);return <td key={w}>{r?<span className={r.hours>r.available?'is-overdue':''}>{Math.round(r.hours/r.available*100)}% <small>({r.hours}/{r.available} h)</small></span>:<span className="muted">Not planned</span>}</td>})}</tr>)}</tbody></table></div></Panel>
   </>}
  </div>;

@@ -113,7 +113,7 @@ export function ClientsPage() {
         <SearchInput value={text} onChange={setText} placeholder="Search name, company or email" />
       </FilterBar>
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="table" />}
       {data && !data.length && (
         <EmptyState
           icon={Building2}

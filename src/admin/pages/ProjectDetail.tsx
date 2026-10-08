@@ -77,7 +77,7 @@ export function ProjectDetailPage() {
       </div>
     );
   }
-  if (loading && !project) return <div className="page"><Loading /></div>;
+  if (loading && !project) return <div className="page"><Loading variant="detail" /></div>;
   if (!project) return null;
 
   return (

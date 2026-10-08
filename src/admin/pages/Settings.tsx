@@ -86,7 +86,7 @@ export function SettingsPage() {
     <div className="page page-narrow">
       <PageHeader title="Settings" description="Your profile, password and appearance." />
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="form" />}
       {data && (
         <Panel title="Profile">
           <div className="profile-head">

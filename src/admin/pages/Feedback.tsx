@@ -186,7 +186,7 @@ function FeedbackThread({
             <MultilineText text={item.body || "No details given."} />
           </div>
         </article>
-        {!comments && <Loading />}
+        {!comments && <Loading variant="lines" />}
         {comments?.map((comment) => (
           <article key={comment.id} className="comment">
             <Avatar name={comment.createdByName} size={32} />

@@ -52,7 +52,7 @@ export function TeamPage() {
         <SelectFilter label="Department" allLabel="All departments" value={department} onChange={setDepartment} options={[...new Set((data??[]).map(m=>m.department).filter(Boolean))].map(d=>({value:d,label:d}))}/>
       </FilterBar>
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="cards" />}
       {data && !members.length && <EmptyState icon={Users} title="No one matches" />}
       {groups.map((group) => (
         <section key={group.name}>

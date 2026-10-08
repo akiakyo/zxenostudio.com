@@ -34,7 +34,7 @@ export function ArchivesPage() {
         <SearchInput value={text} onChange={setText} placeholder="Search archived projects" />
       </FilterBar>
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="table" />}
       {data && !data.length && (
         <EmptyState icon={Archive} title={q ? "No archived projects match" : "Nothing archived yet"}>
           Archive a project from its page or the projects list.

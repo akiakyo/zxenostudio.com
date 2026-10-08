@@ -6,7 +6,7 @@ import { WorkspaceProvider } from "./lib/workspace";
 import { Mark, Shell } from "./Shell";
 import { ParticleField } from "./ui/particles";
 import { PasswordForm } from "./ui/password";
-import { UiProvider } from "./ui/ui";
+import { ShellSkeleton, UiProvider } from "./ui/ui";
 import { WarmTooltipGroup } from "./ui/micro/WarmTooltip";
 
 type State =
@@ -19,10 +19,29 @@ async function fetchSession(): Promise<Session | null> {
   return res.ok ? res.json() : null;
 }
 
+/* Remembered on this device so the loading screen can guess which way the
+   session check will go: a workspace outline for someone who was signed in,
+   the plain sign-in background for everyone else. A hint only, never trusted. */
+const SIGNED_IN_HINT = "zxeno-admin-signed-in";
+function readHint(): boolean {
+  try {
+    return localStorage.getItem(SIGNED_IN_HINT) === "1";
+  } catch {
+    return false;
+  }
+}
+function writeHint(on: boolean) {
+  try {
+    if (on) localStorage.setItem(SIGNED_IN_HINT, "1");
+    else localStorage.removeItem(SIGNED_IN_HINT);
+  } catch {}
+}
+
 export default function Admin() {
   const [state, setState] = useState<State>({ status: "checking" });
 
   const applySession = useCallback((session: Session | null) => {
+    writeHint(!!session);
     setState(
       session ? { status: "signed-in", session } : { status: "signed-out" },
     );
@@ -48,7 +67,7 @@ export default function Admin() {
     return <ResetPassword onSignedIn={applySession} />;
   }
   if (state.status === "checking") {
-    return <main className="auth" aria-busy="true" />;
+    return readHint() ? <ShellSkeleton /> : <main className="auth" aria-busy="true" />;
   }
   if (state.status === "signed-out") {
     return <Login onSignedIn={applySession} />;

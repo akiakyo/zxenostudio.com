@@ -76,7 +76,7 @@ export function ProjectsPage() {
       ) : (
         <>
           {error && <ErrorNote message={error} onRetry={reload} />}
-          {loading && !data && <Loading />}
+          {loading && !data && <Loading variant="table" />}
           {data && !data.length && (
             <EmptyState
               icon={FolderKanban}

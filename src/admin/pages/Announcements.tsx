@@ -227,7 +227,7 @@ function SendDialog({
             Send to email
           </button>
         </div>
-        {!contacts && <Loading />}
+        {!contacts && <Loading variant="lines" />}
         {contacts && mode === "all" && (
           <p className="hint">
             {withEmail.length
@@ -329,7 +329,7 @@ function EmailListDialog({ open, onClose }: { open: boolean; onClose: () => void
       <form id="announcement-emails" className="stack-form" onSubmit={submit}>
         <p className="hint">"Send to all" emails everyone with an address here. Leave a box empty to leave that person out.</p>
         {error && <ErrorNote message={error} onRetry={reload} />}
-        {!data && !error && <Loading />}
+        {!data && !error && <Loading variant="lines" />}
         {data?.map((c) => (
           <div className="field" key={c.username}>
             <label htmlFor={`email-${c.username}`}>

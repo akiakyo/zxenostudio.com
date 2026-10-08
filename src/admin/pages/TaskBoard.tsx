@@ -69,7 +69,7 @@ export function TaskBoardPage() {
         <SelectFilter label="Priority" allLabel="All priorities" value={priority} onChange={setPriority} options={options(["urgent", "high", "medium", "low"])} />
       </FilterBar>
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="board" />}
       {data && !data.length && (
         <EmptyState icon={Columns3} title="No tasks match these filters" />
       )}

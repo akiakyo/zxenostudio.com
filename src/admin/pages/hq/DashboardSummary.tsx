@@ -3,7 +3,7 @@ import { useApi } from '../../lib/api';
 import { formatDate, label, moneyShort, presenceLabel, relativeDay, todayIso, workStatus } from '../../lib/format';
 import { Link } from '../../lib/router';
 import { useWorkspace } from '../../lib/workspace';
-import { Avatar, ErrorNote, Panel, StatusBadge } from '../../ui/ui';
+import { Avatar, ErrorNote, Loading, Panel, StatusBadge } from '../../ui/ui';
 import type { RecordRow } from './Records';
 
 type Summary = {
@@ -78,6 +78,8 @@ export function DashboardSummary() {
   const view = useApi<Overview>('hq-overview');
   const { team, session } = useWorkspace();
   if (error) return <ErrorNote message={error} onRetry={reload} />;
+  /* an outline until the numbers arrive, rather than zeros that look real */
+  if (!data || (!view.data && !view.error)) return <Loading variant="dashboard" label="Loading the dashboard" />;
   const o = view.data;
   const active = (data?.projects ?? []).filter((p) => p.status !== 'completed').reduce((n, p) => n + p.count, 0);
   const inReview = (data?.projects ?? []).find((p) => p.status === 'review')?.count ?? 0;

@@ -110,7 +110,7 @@ export function InvoicesPage() {
         <SelectFilter label="Project" allLabel="All projects" value={projectId} onChange={setProjectId} options={projects.map((p) => ({ value: p.id, label: p.name }))} />
       </FilterBar>
       {error && <ErrorNote message={error} onRetry={reload} />}
-      {loading && !data && <Loading />}
+      {loading && !data && <Loading variant="table" />}
       {data && !data.length && (
         <EmptyState icon={Receipt} title={q || status || projectId ? "No invoices match" : "No invoices yet"} />
       )}

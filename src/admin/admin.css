@@ -4152,3 +4152,247 @@ a.hero-tile:hover {
 .inquiry-actions a.btn {
   text-decoration: none;
 }
+
+/* ---------- Skeleton loading ----------
+   Shapes in the colours of the real surfaces, with one soft highlight
+   sweeping across them. Sized like what replaces them, so nothing jumps. */
+.skeleton {
+  --sk-base: color-mix(in srgb, var(--text) 8%, transparent);
+  --sk-shine: color-mix(in srgb, var(--text) 4%, transparent);
+  padding: 4px 0 24px;
+}
+.sk-bar,
+.sk-circle,
+.sk-box {
+  display: block;
+  flex: none;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--sk-shine) 50%,
+      transparent 70%
+    )
+    var(--sk-base);
+  background-size: 220% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+.sk-title {
+  height: 15px;
+}
+.sk-heading {
+  height: 34px;
+  border-radius: 10px;
+}
+.sk-number {
+  height: 28px;
+  border-radius: 8px;
+}
+.sk-pill {
+  height: 22px;
+}
+.sk-progress {
+  height: 8px;
+}
+.sk-input {
+  height: 40px;
+  border-radius: 10px;
+}
+.sk-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.sk-circle.sk-lg {
+  width: 56px;
+  height: 56px;
+}
+.sk-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+}
+@keyframes sk-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-bar,
+  .sk-circle,
+  .sk-box {
+    animation: none;
+  }
+}
+.sk-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.sk-cell-main {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+}
+.sk-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sk-line .sk-bar {
+  flex: none;
+}
+/* list */
+.sk-list {
+  display: grid;
+  gap: 10px;
+}
+.sk-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* cards */
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.sk-grid .sk-card {
+  justify-items: center;
+  padding: 24px 18px;
+}
+/* table */
+.sk-table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+}
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+}
+.sk-row.sk-head {
+  border-top: 0;
+  background: var(--card-2);
+}
+.sk-row > .sk-bar {
+  flex: none;
+}
+/* board */
+.sk-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 16px;
+  overflow: hidden;
+}
+.sk-column {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--card-2);
+}
+/* dashboard */
+.sk-dashboard,
+.sk-detail {
+  display: grid;
+  gap: 14px;
+}
+.sk-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.sk-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+.sk-panel {
+  gap: 16px;
+  padding: 20px;
+}
+/* detail */
+.sk-tabs {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+.sk-tabs .sk-bar {
+  height: 30px;
+}
+/* form */
+.sk-field {
+  display: grid;
+  gap: 8px;
+}
+/* chat */
+.sk-chat {
+  display: grid;
+  gap: 18px;
+  padding: 8px 4px;
+}
+.sk-message {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.sk-message.is-mine {
+  flex-direction: row-reverse;
+}
+.sk-bubble {
+  display: grid;
+  gap: 8px;
+  width: min(420px, 70%);
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.sk-message.is-mine .sk-bubble {
+  justify-items: end;
+}
+/* lines (inside dialogs) */
+.sk-lines {
+  display: grid;
+  gap: 10px;
+  padding: 8px 0;
+}
+/* the whole shell, before the session is known */
+.skeleton-shell {
+  --sk-base: color-mix(in srgb, var(--text) 8%, transparent);
+  --sk-shine: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.sk-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 22px 18px;
+}
+.sk-nav-group {
+  display: grid;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .sk-board {
+    grid-template-columns: repeat(3, minmax(200px, 1fr));
+  }
+  .sk-row > .sk-bar:nth-child(n + 3) {
+    display: none;
+  }
+}

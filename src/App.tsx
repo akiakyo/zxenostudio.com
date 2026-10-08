@@ -3,6 +3,7 @@ import { Footer } from "./components/Footer";
 import { PortfolioGallery } from "./components/Portfolio";
 import { useEffect } from "react";
 import { setupExperience } from "./experience";
+import { setupMediaSkeletons } from "./media-skeleton";
 import {
   Hero,
   SelectedWork,
@@ -39,7 +40,12 @@ export default function App() {
     document.querySelectorAll<HTMLAnchorElement>("nav a").forEach((a) => {
       if (a.pathname === path) a.setAttribute("aria-current", "page");
     });
-    return setupExperience();
+    const stopSkeletons = setupMediaSkeletons();
+    const stopExperience = setupExperience();
+    return () => {
+      stopSkeletons();
+      stopExperience?.();
+    };
   }, []);
   return (
     <>

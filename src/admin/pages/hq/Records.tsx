@@ -28,7 +28,7 @@ export function Records({config, extra, onSelect, refresh=0}:{config:RecordConfi
  const rows=(data??[]).filter(r=>!text||Object.values(r).some(v=>typeof v==='string'&&v.toLowerCase().includes(text.toLowerCase())));
  return <>
   <div className="toolbar"><SearchInput value={text} onChange={setText} placeholder={`Search ${config.noun}`} />{allowed&&<Button variant="primary" icon={Plus} onClick={()=>editor.openNew(config.defaults)}>New {config.noun}</Button>}</div>
-  {error&&<ErrorNote message={error} onRetry={reload}/>} {loading&&!data&&<Loading/>}
+  {error&&<ErrorNote message={error} onRetry={reload}/>} {loading&&!data&&<Loading variant="table" />}
   {data&&!rows.length&&<EmptyState icon={FileText} title={text?'No matches':`No ${config.noun} records yet`}/>}
   {!!rows.length&&<div className="table-wrap"><table className="table"><thead><tr>{config.columns.map(c=><th key={c.label} scope="col">{c.label}</th>)}<th scope="col"><span className="sr-only">Actions</span></th></tr></thead><tbody>
    {rows.map(r=><tr key={r.id}>{config.columns.map((c,i)=><td key={c.label}>{i===0&&onSelect?<button className="text-btn cell-title" onClick={()=>onSelect(r)}>{c.render(r)}</button>:c.render(r)}</td>)}<td><div className="row-buttons">{extra?.(r,reload)}<Menu items={[

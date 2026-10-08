@@ -701,7 +701,7 @@ function Conversation({
               if (atBottom.current && unseen) setUnseen(0);
             }}
           >
-            {loading && <Loading label="Loading messages" />}
+            {loading && <Loading label="Loading messages" variant="chat" />}
             {error && <ErrorNote message={error} />}
             {!loading && hasMore && (
               <div className="chat-older">
