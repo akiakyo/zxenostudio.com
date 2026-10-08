@@ -39,7 +39,7 @@ export const MEMBERS: Member[] = [
     username: "aquio.zxeno",
     name: "Aquio Fulgencio",
     title: "CTO / Software Engineer",
-    access: "member",
+    access: "executive",
   },
   {
     username: "johnkenneth.zxeno",

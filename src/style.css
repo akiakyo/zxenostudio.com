@@ -223,6 +223,10 @@
   background: #ec6a99;
   color: #fff;
 }
+.lanyard-avatar[data-role-color="cto"] {
+  background: #6b4fd1;
+  color: #fff;
+}
 .lanyard-avatar[data-role-color="engineer"] {
   background: #3b7dd8;
   color: #fff;

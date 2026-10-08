@@ -172,6 +172,8 @@ export function Team() {
 function roleColor(role: string) {
   const r = role.toLowerCase();
   if (r.includes("cmo")) return "cmo";
+  /* a whole word, or "Director" would match */
+  if (/\bcto\b/.test(r)) return "cto";
   if (r.includes("co-founder")) return "co-founder";
   if (r.includes("founder")) return "founder";
   if (r.includes("editor") || r.includes("colorist")) return "editor";
@@ -192,7 +194,9 @@ const TEAM_TIERS = ["engineer", "designer", "editor", "other"];
 function teamTiers(order: string[]) {
   const groups = new Map<string, typeof team>();
   for (const member of team) {
-    const key = roleColor(member.role) ?? "other";
+    /* the C-suite shares one row: CMO and CTO side by side */
+    const color = roleColor(member.role) ?? "other";
+    const key = color === "cto" ? "cmo" : color;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(member);
   }
