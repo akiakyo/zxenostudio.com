@@ -9,7 +9,7 @@ import { LOGO_PNG_BASE64 } from "./email-logo.js";
 import { HttpError, requireExecutive } from "./http.js";
 import { USERNAME_PATTERN } from "./users.js";
 
-const FROM =
+export const FROM =
   process.env.ANNOUNCEMENT_FROM ?? "ZXENO Studio <announcement@zxenostudio.com>";
 const SITE_URL = "https://zxenostudio.com";
 const ADMIN_URL = "https://admin.zxenostudio.com/announcements";
@@ -138,7 +138,7 @@ export async function send(session: Session, body: Record<string, any>) {
   return { sent };
 }
 
-async function resend(message: Record<string, unknown>) {
+export async function resend(message: Record<string, unknown>) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new HttpError(503, "Email is not set up: RESEND_API_KEY is missing");
   /* Resend allows a few requests a second; wait and retry when it says so */
@@ -165,19 +165,19 @@ async function resend(message: Record<string, unknown>) {
 /* a display name can't carry the characters that delimit an address */
 const senderName = (name: string) => name.replace(/[<>"@,;:\\]/g, "").trim().slice(0, 60);
 
-const escape = (text: string) =>
+export const escape = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /* Brand colours from src/tokens.css, written out because mail clients ignore
    custom properties. */
-const INK = "#0f1e09";
-const BRAND = "#55a630";
+export const INK = "#0f1e09";
+export const BRAND = "#55a630";
 const BRAND_SOFT = "#e2edd6";
 const BRAND_DEEP = "#2f5e19";
-const GROUND = "#efeee8";
-const MUTED = "#6b6f63";
-const LINE = "#e3e1d8";
-const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+export const GROUND = "#efeee8";
+export const MUTED = "#6b6f63";
+export const LINE = "#e3e1d8";
+export const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 export function render(
   a: {

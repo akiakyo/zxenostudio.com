@@ -9,6 +9,8 @@ import { databaseError, HttpError, readBody } from "./http.js";
 import { RESOURCES } from "./resources.js";
 import * as views from "./views.js";
 import * as hq from './hq.js';
+import * as inquiries from './inquiries.js';
+import * as resets from './resets.js';
 
 type Handler = (
   session: Session,
@@ -46,6 +48,8 @@ const VIEWS: Record<string, Partial<Record<string, Handler>>> = {
   },
   'announcement-emails': { GET: s=>email.list(s), PATCH: async(s,r)=>email.save(s,await readBody(r)) },
   'announcement-send': { POST: async(s,r)=>email.send(s,await readBody(r)) },
+  'inquiry-convert': { POST: async(s,r)=>inquiries.convert(s,await readBody(r)) },
+  'member-password': { POST: async(s,r)=>resets.resetToStarting(s,await readBody(r)) },
   'chat-pins': { POST: async(s,r)=>chat.pin(s,await readBody(r)) },
   'chat-conversations': { GET: s=>chat.conversations(s) },
   presence: { POST: async(s,r)=>chat.heartbeat(s,await readBody(r)) },

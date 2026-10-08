@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore } from "lucide-react";
 import { query, useApi } from "../lib/api";
 import { formatDate, timeAgo } from "../lib/format";
 import { Link } from "../lib/router";
@@ -9,6 +9,7 @@ import {
   EmptyState,
   ErrorNote,
   FilterBar,
+  FuseAction,
   Loading,
   PageHeader,
   SearchInput,
@@ -67,9 +68,12 @@ export function ArchivesPage() {
                         Restore
                       </Button>
                       {actions.canDelete && (
-                        <Button size="sm" variant="danger" icon={Trash2} onClick={() => actions.remove(project)}>
-                          Delete
-                        </Button>
+                        <FuseAction
+                          size="sm"
+                          label="Delete"
+                          doneLabel="Deleted"
+                          onCommit={() => actions.removeNow(project)}
+                        />
                       )}
                     </div>
                   </td>

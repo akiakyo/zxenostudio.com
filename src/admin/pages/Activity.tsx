@@ -24,6 +24,8 @@ import {
 
 const ENTITY_LINKS: Record<string, (id: string) => string> = {
   approval:id=>`/approvals?id=${id}`,
+  inquiry:id=>`/inquiries?id=${id}`,
+  teammate:()=>"/roles",
   event:id=>`/calendar?view=agenda&id=${id}`,
   document:id=>`/handbook?id=${id}`,
   expense:()=>'/finance',deal:()=>'/clients',capacity:()=>'/workload',

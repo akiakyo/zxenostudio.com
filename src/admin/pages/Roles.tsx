@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { Check, Minus, Pencil } from "lucide-react";
-import { patch, useApi } from "../lib/api";
+import { Check, KeyRound, Minus, Pencil } from "lucide-react";
+import { patch, post, useApi } from "../lib/api";
 import type { Access, Member } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
 import { FormModal } from "../ui/form";
+import HoldButton from "../ui/micro/HoldButton";
 import {
   Avatar,
   Button,
   ErrorNote,
   Loading,
+  Modal,
   PageHeader,
   Panel,
   StatusBadge,
+  useAction,
   useUi,
 } from "../ui/ui";
 
@@ -42,6 +45,8 @@ const PERMISSIONS: { area: string; member: string | boolean; executive: string |
   { area: "Executive overview", member: false, executive: true },
   { area: "Change their own name, phone and bio", member: true, executive: true },
   { area: "Change member roles and access", member: false, executive: true },
+  { area: "Reset another member's password", member: false, executive: true },
+  { area: "Work website inquiries", member: "View, update and add as a client", executive: "Also delete" },
 ];
 
 function Cell({ value }: { value: string | boolean }) {
@@ -55,6 +60,10 @@ export function RolesPage() {
   const { toast } = useUi();
   const { data, error, loading, reload } = useApi<Member[]>("team");
   const [editing, setEditing] = useState<Member | null>(null);
+  /* the account being reset, and its starting password once that is done */
+  const [resetting, setResetting] = useState<Member | null>(null);
+  const [startingPassword, setStartingPassword] = useState("");
+  const run = useAction();
 
   return (
     <div className="page">
@@ -95,7 +104,14 @@ export function RolesPage() {
                     <td><StatusBadge value={m.access} /></td>
                     {isExecutive && (
                       <td className="cell-actions">
-                        <Button size="sm" icon={Pencil} onClick={() => setEditing(m)}>Change role</Button>
+                        <div className="row-buttons">
+                          <Button size="sm" icon={Pencil} onClick={() => setEditing(m)}>Change role</Button>
+                          {m.username !== session.username && (
+                            <Button size="sm" icon={KeyRound} onClick={() => { setStartingPassword(""); setResetting(m); }}>
+                              Reset password
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -128,6 +144,53 @@ export function RolesPage() {
           </table>
         </div>
       </Panel>
+
+      <Modal
+        open={!!resetting}
+        size="sm"
+        title={`Reset password · ${resetting?.name || resetting?.username || ""}`}
+        onClose={() => setResetting(null)}
+        footer={
+          startingPassword ? (
+            <Button variant="primary" onClick={() => setResetting(null)}>Done</Button>
+          ) : (
+            <>
+              <Button onClick={() => setResetting(null)}>Cancel</Button>
+              <HoldButton
+                size="sm"
+                holdTime={1200}
+                resetAfter={0}
+                icon={<KeyRound size={14} aria-hidden />}
+                doneLabel="Reset"
+                onHold={async () => {
+                  const result = await run(() =>
+                    post<{ startingPassword: string }>("member-password", { username: resetting!.username }),
+                  );
+                  if (result) setStartingPassword(result.startingPassword);
+                }}
+              >
+                Hold to reset
+              </HoldButton>
+            </>
+          )
+        }
+      >
+        {startingPassword ? (
+          <div className="confirm-body">
+            <p>
+              Done. {resetting?.name || resetting?.username} can now sign in with{" "}
+              <code>{startingPassword}</code> and will be asked to choose a new password straight away.
+            </p>
+            <p className="hint">Pass it on privately, in person or by direct message.</p>
+          </div>
+        ) : (
+          <p className="confirm-body">
+            Puts @{resetting?.username} back to their starting password and signs them out everywhere.
+            Use this when someone is locked out and has no email on file; anyone with an email can use
+            "Forgot password?" on the sign-in page instead.
+          </p>
+        )}
+      </Modal>
 
       <FormModal
         open={!!editing}

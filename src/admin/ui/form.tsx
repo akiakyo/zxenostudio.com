@@ -3,6 +3,7 @@
    as blank text or no value. */
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useWorkspace } from "../lib/workspace";
+import SpringCheck from "./micro/SpringCheck";
 import { Button, Modal } from "./ui";
 
 export type FieldDef = {
@@ -169,17 +170,22 @@ function FieldInput({
       break;
     case "checkbox":
       return (
-        <label className={`field field-check ${wide ? "field-wide" : ""}`}>
-          <input
-            type="checkbox"
-            checked={value}
-            onChange={(e) => onChange(e.target.checked)}
+        <div className={`field field-check ${wide ? "field-wide" : ""}`}>
+          <SpringCheck
+            label={
+              <>
+                {field.label}
+                {field.hint && <small>{field.hint}</small>}
+              </>
+            }
+            strike="none"
+            checked={!!value}
+            onChange={onChange}
+            boxSize={20}
+            boxRadius={6}
+            fontSize={14}
           />
-          <span>
-            {field.label}
-            {field.hint && <small>{field.hint}</small>}
-          </span>
-        </label>
+        </div>
       );
     case "range":
       control = (

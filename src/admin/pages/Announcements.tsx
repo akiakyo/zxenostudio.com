@@ -5,6 +5,7 @@ import { formatDateTime, timeAgo } from "../lib/format";
 import type { Announcement, EmailContact } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
 import { ANNOUNCEMENT_FIELDS, useEditor } from "../ui/editors";
+import HoldButton from "../ui/micro/HoldButton";
 import {
   Avatar,
   Badge,
@@ -194,9 +195,23 @@ function SendDialog({
       footer={
         <>
           <Button onClick={onClose}>Not now</Button>
-          <Button type="submit" form="announcement-send" variant="primary" icon={Send} disabled={busy || !chosen.length}>
-            {busy ? "Sending…" : `Send to ${chosen.length} ${chosen.length === 1 ? "person" : "people"}`}
-          </Button>
+          {/* email can't be unsent, so it takes a press and hold */}
+          <HoldButton
+            className="is-primary"
+            size="sm"
+            holdTime={1000}
+            resetAfter={0}
+            backgroundColor="var(--card)"
+            textColor="var(--text)"
+            fillColor="var(--accent)"
+            fillTextColor="var(--accent-ink)"
+            icon={<Send size={14} aria-hidden />}
+            doneLabel="Sending…"
+            disabled={busy || !chosen.length}
+            onHold={() => (document.getElementById("announcement-send") as HTMLFormElement | null)?.requestSubmit()}
+          >
+            {busy ? "Sending…" : `Hold to send to ${chosen.length} ${chosen.length === 1 ? "person" : "people"}`}
+          </HoldButton>
         </>
       }
     >

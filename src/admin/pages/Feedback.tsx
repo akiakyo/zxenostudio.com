@@ -20,6 +20,7 @@ import {
   StatusBadge,
   useAction,
   useUi,
+  FuseAction,
 } from "../ui/ui";
 
 export function FeedbackPage() {
@@ -145,7 +146,6 @@ function FeedbackThread({
 
   async function remove() {
     if (
-      (await confirm({ title: "Delete this feedback thread?", body: "All replies are deleted too.", confirmLabel: "Delete", danger: true })) &&
       (await run(() => del(`feedback?id=${item.id}`), "Feedback deleted"))
     ) {
       onChange(null);
@@ -173,7 +173,7 @@ function FeedbackThread({
           <span className="spacer" />
           <Button size="sm" icon={Pencil} onClick={onEdit}>Edit</Button>
           {(item.createdBy === session.username || isExecutive) && (
-            <Button size="sm" variant="danger" icon={Trash2} onClick={remove}>Delete</Button>
+            <FuseAction size="sm" label="Delete thread" doneLabel="Deleted" onCommit={remove} />
           )}
         </div>
         <article className="comment is-original">

@@ -36,7 +36,7 @@ export async function readNotifications(s:Session,body:Record<string,unknown>){
 /* Counts for the sidebar. Only what this person can act on: their own unread
    messages, and the approvals they are actually allowed to decide. */
 export async function badges(s:Session){
- const [chat,approvals]=await Promise.all([
+ const [chat,approvals,inquiries]=await Promise.all([
   query(`SELECT count(*)::int AS n FROM admin_chat_messages m
    LEFT JOIN admin_chat_reads r ON r.username=$1 AND r.conversation = CASE
      WHEN m.recipient IS NOT NULL THEN 'dm:'||m.author
@@ -51,8 +51,9 @@ export async function badges(s:Session){
      AND m.id>coalesce(r.last_message_id,0)`,[s.username,CHANNELS]),
   query(`SELECT count(*)::int AS n FROM admin_approvals
    WHERE status='pending' AND ($2 OR reviewer=$1)`,[s.username,isExecutive(s)]),
+  query(`SELECT count(*)::int AS n FROM admin_inquiries WHERE status='new'`),
  ]);
- return {chat:chat[0].n,approvals:approvals[0].n};
+ return {chat:chat[0].n,approvals:approvals[0].n,inquiries:inquiries[0].n};
 }
 
 /* Everything the dashboard's top half needs, in one round trip. Series are

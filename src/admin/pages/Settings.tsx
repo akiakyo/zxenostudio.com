@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Lock, Monitor, Moon, Sun , Volume2, VolumeX } from "lucide-react";
+import { Lock, Monitor, Moon, Sun } from "lucide-react";
 import { patch, useApi } from "../lib/api";
 import type { Member } from "../lib/types";
 import { chime, setSoundOn, soundOn } from "../lib/sound";
 import { useWorkspace } from "../lib/workspace";
+import BellToggle from "../ui/micro/BellToggle";
+import RubberSegment from "../ui/micro/RubberSegment";
 import { PasswordForm } from "../ui/password";
 import {
   Avatar,
@@ -140,26 +142,19 @@ export function SettingsPage() {
       </Panel>
 
       <Panel title="Appearance">
-        <div className="segmented" role="radiogroup" aria-label="Theme">
-          {([
-            ["light", "Light", Sun],
-            ["dark", "Dark", Moon],
-            ["system", "System", Monitor],
-          ] as const).map(([value, text, Icon]) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={theme === value}
-              onClick={() => {
-                setTheme(value);
-                applyTheme(value);
-              }}
-            >
-              <Icon size={15} aria-hidden /> {text}
-            </button>
-          ))}
-        </div>
+        <RubberSegment
+          aria-label="Theme"
+          value={theme}
+          onChange={(value) => {
+            setTheme(value as Theme);
+            applyTheme(value as Theme);
+          }}
+          items={[
+            { value: "light", label: "Light", icon: <Sun size={15} aria-hidden /> },
+            { value: "dark", label: "Dark", icon: <Moon size={15} aria-hidden /> },
+            { value: "system", label: "System", icon: <Monitor size={15} aria-hidden /> },
+          ]}
+        />
       </Panel>
 
       <Panel title="Sound">
@@ -167,27 +162,18 @@ export function SettingsPage() {
           A short tone for new chat messages and new notifications. This is remembered on this
           device only.
         </p>
-        <div className="segmented" role="radiogroup" aria-label="Sound">
-          {([
-            [true, "On", Volume2],
-            [false, "Off", VolumeX],
-          ] as const).map(([value, text, Icon]) => (
-            <button
-              key={text}
-              type="button"
-              role="radio"
-              aria-checked={sound === value}
-              onClick={() => {
-                setSound(value);
-                setSoundOn(value);
-                /* play the tone when switching on, so it is obvious it works */
-                if (value) chime.notification();
-              }}
-            >
-              <Icon size={15} aria-hidden /> {text}
-            </button>
-          ))}
-        </div>
+        <BellToggle
+          label="Notification sounds"
+          offLabel="Sounds off"
+          onLabel="Sounds on"
+          pressed={sound}
+          onChange={(value) => {
+            setSound(value);
+            setSoundOn(value);
+            /* play the tone when switching on, so it is obvious it works */
+            if (value) chime.notification();
+          }}
+        />
       </Panel>
       <p className="hint session-hint">Signed in as @{session.username}. Sessions last 8 hours.</p>
     </div>

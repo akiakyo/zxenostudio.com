@@ -44,6 +44,7 @@ import {
 } from "../ui/ui";
 import { ActivityLine } from "./Activity";
 import { DashboardSummary } from './hq/DashboardSummary';
+import { NewInquiriesPanel } from './Inquiries';
 
 type Dashboard = {
   today: string;
@@ -119,6 +120,7 @@ export function DashboardPage() {
             </button>
           </section>
           <div className="dash-grid">
+            <NewInquiriesPanel />
             <Panel
               title="My tasks"
               action={

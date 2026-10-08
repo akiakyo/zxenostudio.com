@@ -21,6 +21,7 @@ import {
   useAction,
   useDebounced,
   useUi,
+  FuseAction,
 } from "../ui/ui";
 
 const SECTIONS: [keyof Brief, string][] = [
@@ -50,7 +51,6 @@ export function BriefsPage() {
 
   async function remove(brief: Brief) {
     if (
-      (await confirm({ title: "Delete this brief?", body: brief.title, confirmLabel: "Delete", danger: true })) &&
       (await run(() => del(`briefs?id=${brief.id}`), "Brief deleted"))
     ) {
       setSearchParam("id", null);
@@ -101,7 +101,7 @@ export function BriefsPage() {
           open && (
             <>
               {(open.createdBy === session.username || isExecutive) && (
-                <Button variant="danger" icon={Trash2} onClick={() => remove(open)}>Delete</Button>
+                <FuseAction key={open.id} label="Delete" doneLabel="Deleted" onCommit={() => remove(open)} />
               )}
               <Button variant="primary" icon={Pencil} onClick={() => editor.openEdit(open)}>Edit brief</Button>
             </>

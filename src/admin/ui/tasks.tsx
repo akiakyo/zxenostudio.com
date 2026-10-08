@@ -1,9 +1,10 @@
-import { Check, Lock, Pencil, Trash2 } from "lucide-react";
+import { Lock, Pencil, Trash2 } from "lucide-react";
 import { del, patch } from "../lib/api";
 import { relativeDay } from "../lib/format";
 import { Link } from "../lib/router";
 import type { Task } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
+import SpringCheck from "./micro/SpringCheck";
 import { Avatar, Badge, Menu, useAction, useUi } from "./ui";
 
 /* One task in a list: a completion checkbox, its title and what it belongs to. */
@@ -51,15 +52,16 @@ export function TaskRow({
 
   return (
     <div className={`task-row ${done ? "is-done" : ""}`}>
-      <button
-        type="button"
-        className="task-check"
-        aria-pressed={done}
-        aria-label={done ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
-        onClick={toggle}
-      >
-        {done && <Check size={14} aria-hidden />}
-      </button>
+      <SpringCheck
+        className="task-check-spring"
+        label=""
+        strike="none"
+        checked={done}
+        onChange={toggle}
+        boxSize={22}
+        boxRadius={7}
+        ariaLabel={`Done: ${task.title}`}
+      />
       <button type="button" className="task-main" onClick={() => onEdit(task)}>
         <span className="task-title">
           {task.isPrivate && <Lock size={12} aria-label="Private" />}

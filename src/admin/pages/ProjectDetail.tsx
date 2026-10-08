@@ -33,12 +33,14 @@ import {
   useInvoiceEditor,
   useTaskEditor,
 } from "../ui/editors";
+import SpringCheck from "../ui/micro/SpringCheck";
 import { TaskRow } from "../ui/tasks";
 import {
   Badge,
   Button,
   EmptyState,
   ErrorNote,
+  FuseAction,
   IconButton,
   Loading,
   Menu,
@@ -107,10 +109,22 @@ export function ProjectDetailPage() {
           {project.archived ? (
             <Button icon={ArchiveRestore} onClick={() => actions.setArchived(project, false)}>Restore</Button>
           ) : (
-            <Button icon={Archive} onClick={() => actions.setArchived(project, true)}>Archive</Button>
+            <FuseAction
+              key={`archive-${project.id}`}
+              tone="neutral"
+              icon={Archive}
+              label="Archive"
+              doneLabel="Archived"
+              onCommit={() => actions.setArchived(project, true)}
+            />
           )}
           {actions.canDelete && (
-            <Button variant="danger" icon={Trash2} onClick={() => actions.remove(project)}>Delete</Button>
+            <FuseAction
+              key={`delete-${project.id}`}
+              label="Delete"
+              doneLabel="Deleted"
+              onCommit={() => actions.removeNow(project)}
+            />
           )}
         </div>
       </header>
@@ -211,15 +225,15 @@ function ScheduleTab({ project, onChanged }: { project: Project; onChanged: () =
               const overdue = !m.done && m.dueDate < todayIso();
               return (
                 <li key={m.id} className={m.done ? "is-done" : ""}>
-                  <button
-                    type="button"
-                    className="task-check"
-                    aria-pressed={m.done}
-                    aria-label={m.done ? `Mark ${m.title} as not reached` : `Mark ${m.title} as reached`}
-                    onClick={() => toggle(m)}
-                  >
-                    {m.done && <Check size={14} aria-hidden />}
-                  </button>
+                  <SpringCheck
+                    label=""
+                    strike="none"
+                    checked={m.done}
+                    onChange={() => toggle(m)}
+                    boxSize={22}
+                    boxRadius={7}
+                    ariaLabel={`Reached: ${m.title}`}
+                  />
                   <div className="milestone-text">
                     <strong>{m.title}</strong>
                     <span className={overdue ? "is-overdue" : ""}>

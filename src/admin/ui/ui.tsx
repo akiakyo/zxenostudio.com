@@ -10,8 +10,13 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { Ellipsis, X } from "lucide-react";
+import { Ellipsis, Trash2, X } from "lucide-react";
 import { initials, label } from "../lib/format";
+import FuseButton from "./micro/FuseButton";
+import HoldButton from "./micro/HoldButton";
+import RubberSegment from "./micro/RubberSegment";
+import SwipeToast from "./micro/SwipeToast";
+import WarmTooltip from "./micro/WarmTooltip";
 
 type Icon = ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
 
@@ -45,22 +50,25 @@ export function IconButton({
   className = "",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: Icon; label: string }) {
+  /* the label shows as a warm tooltip, so there is no native title to double it */
   return (
-    <button
-      type="button"
-      className={`icon-btn ${className}`}
-      aria-label={text}
-      title={text}
-      {...props}
-    >
-      <IconComponent size={16} aria-hidden />
-    </button>
+    <WarmTooltip content={text} side="bottom" size="sm">
+      <button
+        type="button"
+        className={`icon-btn ${className}`}
+        aria-label={text}
+        {...props}
+      >
+        <IconComponent size={16} aria-hidden />
+      </button>
+    </WarmTooltip>
   );
 }
 
 export type Tone = "neutral" | "green" | "blue" | "amber" | "red" | "violet";
 
 const TONES: Record<string, Tone> = {
+  new: 'amber', contacted: 'blue', converted: 'green', archived: 'neutral',
   pending:'amber', revision:'amber', declined:'red', cancelled:'neutral', won:'green', lost:'red',
   planning: "violet",
   active: "green",
@@ -310,20 +318,24 @@ export function Tabs<T extends string>({
   onChange: (value: T) => void;
   label: string;
 }) {
+  /* a sliding segmented control; the bar scrolls sideways on narrow screens */
   return (
-    <div className="tabs" role="tablist" aria-label={text}>
-      {tabs.map((tab) => (
-        <button
-          key={tab.value}
-          type="button"
-          role="tab"
-          aria-selected={tab.value === value}
-          onClick={() => onChange(tab.value)}
-        >
-          {tab.label}
-          {tab.count !== undefined && <span className="tab-count">{tab.count}</span>}
-        </button>
-      ))}
+    <div className="segment-bar">
+      <RubberSegment
+        aria-label={text}
+        value={value}
+        onChange={(next) => onChange(next as T)}
+        equalSlots={false}
+        items={tabs.map((tab) => ({
+          value: tab.value,
+          label: (
+            <>
+              {tab.label}
+              {tab.count !== undefined && <span className="tab-count">{tab.count}</span>}
+            </>
+          ),
+        }))}
+      />
     </div>
   );
 }
@@ -469,24 +481,30 @@ type ConfirmOptions = {
   confirmLabel?: string;
   danger?: boolean;
 };
+/* An optional button on a toast, e.g. "Undo". */
+type ToastAction = { label: string; onAction: () => void };
 type Ui = {
-  toast: (message: string, tone?: "success" | "error") => void;
+  toast: (message: string, tone?: "success" | "error", action?: ToastAction) => void;
   confirm: (options: ConfirmOptions) => Promise<boolean>;
 };
 const UiContext = createContext<Ui | null>(null);
 
 export function UiProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<
-    { id: number; message: string; tone: "success" | "error" }[]
+    { id: number; message: string; tone: "success" | "error"; action?: ToastAction }[]
   >([]);
   const [pending, setPending] = useState<
     (ConfirmOptions & { resolve: (ok: boolean) => void }) | null
   >(null);
 
-  const toast = useCallback<Ui["toast"]>((message, tone = "success") => {
+  /* each toast burns down its own fuse and can be swiped away; it removes
+     itself from the list once it has finished leaving */
+  const toast = useCallback<Ui["toast"]>((message, tone = "success", action) => {
     const id = Date.now() + Math.random();
-    setToasts((list) => [...list.slice(-2), { id, message, tone }]);
-    setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), 4000);
+    setToasts((list) => [...list.slice(-2), { id, message, tone, action }]);
+  }, []);
+  const dismiss = useCallback((id: number) => {
+    setToasts((list) => list.filter((t) => t.id !== id));
   }, []);
 
   const confirm = useCallback<Ui["confirm"]>(
@@ -503,11 +521,22 @@ export function UiProvider({ children }: { children: ReactNode }) {
   return (
     <UiContext.Provider value={{ toast, confirm }}>
       {children}
-      <div className="toasts" aria-live="polite">
+      <div className="toasts">
         {toasts.map((t) => (
-          <div key={t.id} className={`toast toast-${t.tone}`} role="status">
-            {t.message}
-          </div>
+          <SwipeToast
+            key={t.id}
+            inline
+            title={t.message}
+            className={`toast-${t.tone}`}
+            background={t.tone === "error" ? "var(--red)" : "var(--text)"}
+            color={t.tone === "error" ? "var(--card)" : "var(--bg)"}
+            fuseColor={t.tone === "error" ? "var(--card)" : "var(--accent)"}
+            duration={t.tone === "error" ? 6000 : 4000}
+            width={360}
+            actionLabel={t.action?.label}
+            onAction={t.action?.onAction}
+            onClose={() => dismiss(t.id)}
+          />
         ))}
       </div>
       <Modal
@@ -518,13 +547,23 @@ export function UiProvider({ children }: { children: ReactNode }) {
         footer={
           <>
             <Button onClick={() => settle(false)}>Cancel</Button>
-            <Button
-              variant={pending?.danger ? "danger" : "primary"}
-              onClick={() => settle(true)}
-              autoFocus
-            >
-              {pending?.confirmLabel ?? "Confirm"}
-            </Button>
+            {pending?.danger ? (
+              /* destructive: press and hold, so it can't happen on a stray click */
+              <HoldButton
+                size="sm"
+                holdTime={900}
+                resetAfter={0}
+                icon={<Trash2 size={14} aria-hidden />}
+                doneLabel={pending.confirmLabel ?? "Confirm"}
+                onHold={() => settle(true)}
+              >
+                Hold to {(pending.confirmLabel ?? "confirm").toLowerCase()}
+              </HoldButton>
+            ) : (
+              <Button variant="primary" onClick={() => settle(true)} autoFocus>
+                {pending?.confirmLabel ?? "Confirm"}
+              </Button>
+            )}
           </>
         }
       >
@@ -625,4 +664,44 @@ export function useDebounced<T>(value: T, delay = 250): T {
 export function MultilineText({ text }: { text: string }) {
   if (!text) return null;
   return <div className="multiline">{text}</div>;
+}
+
+/* Delete and archive buttons that act after a short undo window: press it and
+   a fuse burns around the button while it offers "Undo"; when the fuse runs
+   out the action happens. Escape also undoes. Leaving the page while the fuse
+   burns lets the action happen rather than dropping it. */
+export function FuseAction({
+  label,
+  doneLabel,
+  icon: IconComponent = Trash2,
+  tone = "danger",
+  size = "md",
+  disabled,
+  onCommit,
+}: {
+  label: string;
+  doneLabel: string;
+  icon?: Icon;
+  tone?: "danger" | "neutral";
+  size?: "sm" | "md";
+  disabled?: boolean;
+  onCommit: () => void;
+}) {
+  return (
+    <FuseButton
+      label={label}
+      doneLabel={doneLabel}
+      undoLabel="Undo"
+      icon={<IconComponent size={size === "sm" ? 14 : 16} aria-hidden />}
+      size={size}
+      commitOn="fuseEnd"
+      undoWindow={4000}
+      color={tone === "danger" ? "var(--red)" : "var(--text)"}
+      fuseColor={tone === "danger" ? "var(--red)" : "var(--amber)"}
+      background="var(--card)"
+      className={`fuse-${tone}`}
+      disabled={disabled}
+      onCommit={onCommit}
+    />
+  );
 }

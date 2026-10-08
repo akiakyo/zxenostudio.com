@@ -2846,3 +2846,109 @@ body:has(.email-dialog[open]) {
     padding: 22px;
   }
 }
+
+/* Project inquiry form (booking page and email popup) */
+.inquiry-form {
+  max-width: 760px;
+  margin: 24px 0 10px;
+}
+.inquiry-form label {
+  display: block;
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.inquiry-form .optional {
+  font-weight: 400;
+  opacity: 0.7;
+}
+.inquiry-form input,
+.inquiry-form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+}
+.inquiry-form textarea {
+  resize: vertical;
+}
+.inquiry-form input:focus-visible,
+.inquiry-form textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+.inquiry-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+}
+.inquiry-form-grid.is-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.inquiry-form.is-compact {
+  margin: 0 0 18px;
+}
+.inquiry-form .booking-button {
+  margin-top: 4px;
+  border: 0;
+  cursor: pointer;
+}
+.inquiry-form .booking-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.inquiry-trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.inquiry-error {
+  margin: 0 0 14px !important;
+  color: #b3261e;
+  font-size: 15px !important;
+}
+:root[data-theme="dark"] .inquiry-error {
+  color: #f2b8b5;
+}
+.inquiry-sent {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  max-width: 640px;
+  margin: 24px 0;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+.inquiry-sent svg {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--brand-deep);
+}
+.inquiry-sent strong {
+  display: block;
+  font-size: 17px;
+}
+.booking-panel .inquiry-sent p {
+  margin: 6px 0 0;
+  font-size: 15px;
+}
+.inquiry-sent p {
+  margin: 6px 0 0;
+}
+@media (max-width: 700px) {
+  .inquiry-form-grid,
+  .inquiry-form-grid.is-three {
+    grid-template-columns: 1fr;
+  }
+}

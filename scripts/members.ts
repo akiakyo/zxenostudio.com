@@ -83,6 +83,12 @@ export const MEMBERS: Member[] = [
     title: "Editor / Motion Designer",
     access: "member",
   },
+  {
+    username: "james.zxeno",
+    name: "James Rodbaq Ordena",
+    title: "Graphic Designer",
+    access: "member",
+  },
 ];
 
 /* Splits db/schema.sql into statements for drivers that run one at a time. */

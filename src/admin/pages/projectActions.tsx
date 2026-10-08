@@ -39,7 +39,12 @@ export function useProjectActions(
       confirmLabel: "Delete project",
       danger: true,
     });
-    if (ok && (await run(() => del(`projects?id=${project.id}`), "Project deleted"))) {
+    if (ok) await removeNow(project);
+  }
+
+  /* for the fuse buttons, whose burning fuse is the chance to undo */
+  async function removeNow(project: Project) {
+    if (await run(() => del(`projects?id=${project.id}`), "Project deleted")) {
       reloadLookups();
       onChanged(null);
     }
@@ -69,6 +74,7 @@ export function useProjectActions(
       invoiceEditor.openNew({ projectId: project.id, clientId: project.clientId ?? "", status: "draft" }),
     setArchived,
     remove,
+    removeNow,
     canDelete: isExecutive,
     elements: (
       <>

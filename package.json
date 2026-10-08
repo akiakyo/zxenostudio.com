@@ -21,6 +21,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@vercel/functions": "^3.9.8",
     "lucide-react": "^1.43.0",
+    "motion": "^12.43.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "three": "^0.186.0",

@@ -8,6 +8,7 @@ import { isUuid, type Resource } from "./crud.js";
 import { one, Params, today, type Row } from "./db.js";
 import { HttpError, isExecutive } from "./http.js";
 import { HQ_RESOURCES } from './hq-resources.js';
+import { inquiries } from './inquiries.js';
 
 const ownerOrExecutive = (session: Session, row: Row) =>
   row.createdBy === session.username || isExecutive(session);
@@ -492,6 +493,7 @@ export const briefs: Resource = {
 
 export const RESOURCES: Record<string, Resource> = {
   ...HQ_RESOURCES,
+  inquiries,
   clients,
   projects,
   milestones,

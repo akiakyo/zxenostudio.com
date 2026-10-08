@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { LogOut } from "lucide-react";
+import { ArrowLeft, LogOut, MailCheck } from "lucide-react";
 import { logout, UNAUTHORIZED_EVENT } from "./lib/api";
 import type { Session } from "./lib/types";
 import { WorkspaceProvider } from "./lib/workspace";
@@ -7,6 +7,7 @@ import { Mark, Shell } from "./Shell";
 import { ParticleField } from "./ui/particles";
 import { PasswordForm } from "./ui/password";
 import { UiProvider } from "./ui/ui";
+import { WarmTooltipGroup } from "./ui/micro/WarmTooltip";
 
 type State =
   | { status: "checking" }
@@ -42,6 +43,10 @@ export default function Admin() {
 
   const signOut = useCallback(() => applySession(null), [applySession]);
 
+  /* the emailed reset link, whether or not someone is signed in here */
+  if (location.pathname === "/reset-password") {
+    return <ResetPassword onSignedIn={applySession} />;
+  }
   if (state.status === "checking") {
     return <main className="auth" aria-busy="true" />;
   }
@@ -82,15 +87,30 @@ export default function Admin() {
         onSessionChange={applySession}
         onSignOut={signOut}
       >
-        <Shell />
+        <WarmTooltipGroup delay={450} warmWindow={350}>
+          <Shell />
+        </WarmTooltipGroup>
       </WorkspaceProvider>
     </UiProvider>
   );
 }
 
+async function resetRequest(body: Record<string, string>) {
+  const res = await fetch("/api/admin/password-reset", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Something went wrong");
+  return data;
+}
+
 function Login({ onSignedIn }: { onSignedIn: (session: Session | null) => void }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgot, setForgot] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,6 +145,7 @@ function Login({ onSignedIn }: { onSignedIn: (session: Session | null) => void }
     }
   }
 
+  if (forgot) return <ForgotPassword onBack={() => setForgot(false)} />;
   return (
     <main className="auth">
       <ParticleField />
@@ -147,6 +168,154 @@ function Login({ onSignedIn }: { onSignedIn: (session: Session | null) => void }
         <button className="btn btn-primary btn-md auth-submit" disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </button>
+        <button type="button" className="text-btn auth-link" onClick={() => setForgot(true)}>
+          Forgot password?
+        </button>
+      </form>
+    </main>
+  );
+}
+
+function ForgotPassword({ onBack }: { onBack: () => void }) {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setSubmitting(true);
+    setError("");
+    try {
+      await resetRequest({ username: String(form.get("username") ?? "") });
+      setSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not reach the server");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth">
+      <ParticleField />
+      <form className="auth-card" onSubmit={submit}>
+        <AuthBrand />
+        <h1>Forgot password</h1>
+        {sent ? (
+          <p className="auth-lede auth-sent" role="status">
+            <MailCheck size={18} aria-hidden />
+            <span>
+              If that account has an email address on file, a reset link is on its way. It works
+              once, for 30 minutes. No email saved? Ask an executive to reset your password.
+            </span>
+          </p>
+        ) : (
+          <>
+            <p className="auth-lede">
+              Enter your username and we'll email a reset link to the address saved in your profile.
+            </p>
+            <div className="field">
+              <label htmlFor="forgot-username">Username</label>
+              <input id="forgot-username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required autoFocus />
+            </div>
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="btn btn-primary btn-md auth-submit" disabled={submitting}>
+              {submitting ? "Sending…" : "Email me a reset link"}
+            </button>
+          </>
+        )}
+        <button type="button" className="text-btn auth-link" onClick={onBack}>
+          <ArrowLeft size={14} aria-hidden /> Back to sign in
+        </button>
+      </form>
+    </main>
+  );
+}
+
+/* Opened from the emailed link: /reset-password#<token>. */
+function ResetPassword({ onSignedIn }: { onSignedIn: (session: Session | null) => void }) {
+  const [token] = useState(() => location.hash.slice(1));
+  const [valid, setValid] = useState<boolean | null>(null);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    /* keep the token out of the address bar and history once it is read */
+    history.replaceState(null, "", "/reset-password");
+    if (!token) {
+      setValid(false);
+      return;
+    }
+    resetRequest({ token })
+      .then((data) => setValid(!!data.valid))
+      .catch(() => setValid(false));
+  }, [token]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const newPassword = String(form.get("newPassword") ?? "");
+    if (newPassword !== form.get("confirmPassword")) {
+      setError("New passwords do not match");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      await resetRequest({ token, newPassword });
+      history.replaceState(null, "", "/");
+      onSignedIn(await fetchSession());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not reach the server");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth">
+      <ParticleField />
+      <form className="auth-card" onSubmit={submit}>
+        <AuthBrand />
+        <h1>Choose a new password</h1>
+        {valid === null && <p className="auth-lede">Checking your link…</p>}
+        {valid === false && (
+          <>
+            <p className="form-error" role="alert">
+              This reset link has expired or was already used. Ask for a new one from the sign-in page.
+            </p>
+            <a className="btn btn-secondary btn-md auth-submit" href="/">
+              Back to sign in
+            </a>
+          </>
+        )}
+        {valid && (
+          <>
+            <p className="auth-lede">This signs you out everywhere else and signs you in here.</p>
+            <div className="field">
+              <label htmlFor="reset-new">New password</label>
+              <input id="reset-new" name="newPassword" type="password" autoComplete="new-password" minLength={10} required autoFocus aria-describedby="reset-hint" />
+              <small id="reset-hint">At least 10 characters.</small>
+            </div>
+            <div className="field">
+              <label htmlFor="reset-confirm">Confirm new password</label>
+              <input id="reset-confirm" name="confirmPassword" type="password" autoComplete="new-password" minLength={10} required />
+            </div>
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="btn btn-primary btn-md auth-submit" disabled={submitting}>
+              {submitting ? "Saving…" : "Set password and sign in"}
+            </button>
+          </>
+        )}
       </form>
     </main>
   );

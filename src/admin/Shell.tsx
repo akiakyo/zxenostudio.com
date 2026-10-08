@@ -10,6 +10,7 @@ import {
   FileText,
   FolderKanban,
   Images,
+  Inbox,
   LayoutDashboard,
   ListChecks,
   Lock,
@@ -41,6 +42,7 @@ import { DashboardPage } from "./pages/Dashboard";
 import { DeadlinesPage } from "./pages/Deadlines";
 import { ExecutivesPage } from "./pages/Executives";
 import { FeedbackPage } from "./pages/Feedback";
+import { InquiriesPage } from "./pages/Inquiries";
 import { InvoicesPage } from "./pages/Invoices";
 import { MeetingNotesPage } from "./pages/MeetingNotes";
 import { MyTasksPage } from "./pages/MyTasks";
@@ -64,7 +66,7 @@ type NavItem = {
   page: ComponentType;
   executiveOnly?: boolean;
   /* which sidebar count to show, and what that count means out loud */
-  badge?: { key: "chat" | "approvals"; noun: string };
+  badge?: { key: "chat" | "approvals" | "inquiries"; noun: string };
 };
 
 /* The sidebar, top to bottom: what's happening, the work itself, the creative
@@ -110,6 +112,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Business",
     items: [
+      { path: "/inquiries", label: "Inquiries", icon: Inbox, page: InquiriesPage, badge: { key: "inquiries", noun: "new" } },
       { path: "/clients", label: "Clients", icon: Building2, page: ClientsPage },
       { path: "/invoices", label: "Invoices", icon: Receipt, page: InvoicesPage },
       { path: '/finance', label: 'Finance', icon: Receipt, page: FinancePage },
@@ -156,7 +159,7 @@ export function Shell() {
   const route = resolve(path);
   /* sidebar counts: refreshed on every page change, and slowly in the
      background so a badge does not sit stale while someone reads one page */
-  const badges = useApi<Record<"chat" | "approvals", number>>("badges");
+  const badges = useApi<Record<"chat" | "approvals" | "inquiries", number>>("badges");
   const reloadBadges = badges.reload;
 
   useEffect(() => {

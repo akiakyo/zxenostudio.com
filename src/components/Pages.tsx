@@ -9,6 +9,7 @@ import {
   type Brand,
 } from "../content";
 import { GalleryCard } from "./Portfolio";
+import { InquiryForm } from "./InquiryForm";
 import {
   CreditCard,
   ClipboardList,
@@ -328,8 +329,7 @@ export function Pricing() {
   );
 }
 export function Booking() {
-  const service = new URLSearchParams(location.search).get("service");
-  const href = `mailto:zxenostudio@gmail.com?subject=${encodeURIComponent(`Book a call${service ? ` — ${service}` : ""}`)}&body=${encodeURIComponent(`Hi ZXENO,\n\nI'd like to arrange a call${service ? ` about ${service}` : ""}.\n\nProject overview:\nPreferred dates and times (with timezone):\nTarget timeline:\nBudget in PHP:\n\nThanks!`)}`;
+  const service = new URLSearchParams(location.search).get("service") ?? "";
   return (
     <section className="booking-panel" data-tone="paper">
       <span className="eyebrow">Let's meet / Philippines · GMT+8</span>
@@ -337,17 +337,10 @@ export function Booking() {
         A good conversation.
         <br />A great starting point.
       </h2>
-      <p>Share your idea. We'll arrange a call by email.</p>
-      {service && (
-        <p>
-          Interested in: <strong>{service}</strong>
-        </p>
-      )}
-      <a className="booking-button" href={href}>
-        Request a call by email <ArrowUpRight aria-hidden="true" />
-      </a>
+      <p>Share your idea. We'll reply by email to arrange a call.</p>
+      <InquiryForm service={service} />
       <p className="booking-note">
-        Opens your email app. Time confirmed by email.
+        Prefer email? Write to zxenostudio@gmail.com.
       </p>
     </section>
   );

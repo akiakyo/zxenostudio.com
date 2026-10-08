@@ -21,6 +21,7 @@ import {
   useAction,
   useDebounced,
   useUi,
+  FuseAction,
 } from "../ui/ui";
 
 export function MeetingNotesPage() {
@@ -40,7 +41,6 @@ export function MeetingNotesPage() {
 
   async function remove(note: MeetingNote) {
     if (
-      (await confirm({ title: "Delete these meeting notes?", body: note.title, confirmLabel: "Delete", danger: true })) &&
       (await run(() => del(`meeting-notes?id=${note.id}`), "Meeting note deleted"))
     ) {
       setSearchParam("id", null);
@@ -102,7 +102,7 @@ export function MeetingNotesPage() {
           open && (
             <>
               {(open.createdBy === session.username || isExecutive) && (
-                <Button variant="danger" icon={Trash2} onClick={() => remove(open)}>Delete</Button>
+                <FuseAction key={open.id} label="Delete" doneLabel="Deleted" onCommit={() => remove(open)} />
               )}
               <Button variant="primary" icon={Pencil} onClick={() => editor.openEdit(open)}>Edit</Button>
             </>

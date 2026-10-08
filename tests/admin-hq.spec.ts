@@ -5,6 +5,9 @@ import { setDriver } from '../api/_lib/db';
 import { handle } from '../api/_lib/router';
 import { readSession, sessionCookie } from '../api/_lib/auth';
 import { schemaStatements } from '../scripts/members';
+import { POST as inquiryPost } from '../api/inquiry';
+import { POST as resetPost } from '../api/admin/password-reset';
+import { hashPassword, verifyPassword } from '../api/_lib/password';
 
 test.describe.configure({mode:'serial'});
 let db:PGlite;
@@ -315,11 +318,144 @@ test('posting an announcement leads straight to sending it by email',async({page
   await send.getByRole('radio',{name:'Send to email'}).click();
   await send.getByLabel('member').check();await send.getByLabel('Other email addresses').fill('client@example.org');
   await page.screenshot({path:'test-results/announcement-send-some.png'});
-  await send.getByRole('button',{name:'Send to 2 people'}).click();await expect(send).not.toBeVisible();
+  /* sending takes a press and hold */
+  const hold=send.getByRole('button',{name:/Hold to send to 2 people/});await hold.hover();await page.mouse.down();await page.waitForTimeout(1300);await page.mouse.up();await expect(send).not.toBeVisible();
   expect(sent.map(m=>m.to[0]).sort()).toEqual(['client@example.org','member@example.com']);
   await expect(page.getByText(/Emailed to 2 people/).first()).toBeVisible();
   await page.getByRole('button',{name:'Email list'}).click();const list=page.getByRole('dialog',{name:'Email list'});
   await expect(list.getByLabel(/^exec/)).toHaveValue('exec@example.com');await page.screenshot({path:'test-results/announcement-email-list.png'});
   expect(errors).toEqual([]);
  }finally{globalThis.fetch=realFetch;}
+});
+
+test('website inquiries reach the workspace, alert executives and become clients',async()=>{
+ const sent:any[]=[];const realFetch=globalThis.fetch;const realKey=process.env.RESEND_API_KEY;process.env.RESEND_API_KEY='re_test_not_a_real_key';
+ globalThis.fetch=(async(_url:any,init:any)=>{sent.push(JSON.parse(init.body));return new Response('{}',{status:200});}) as any;
+ const submit=(body:unknown,ip='203.0.113.7',origin=ORIGIN)=>inquiryPost(new Request(ORIGIN+'/api/inquiry',{method:'POST',headers:{origin,'content-type':'application/json','x-forwarded-for':ip},body:JSON.stringify(body)}));
+ try{
+  await db.query(`UPDATE admin_users SET email='exec@example.com' WHERE username='exec.test'`);
+  expect((await submit({name:'Ana'},'203.0.113.7','https://evil.example')).status).toBe(403);
+  expect((await submit({name:'Ana',email:'not-an-email',message:'Hi'})).status).toBe(400);
+  expect((await submit({name:'',email:'ana@example.com',message:'Hi'})).status).toBe(400);
+  /* the hidden field: a bot is thanked and nothing is stored */
+  expect((await submit({name:'Bot',email:'bot@example.com',message:'spam',website:'http://spam'})).status).toBe(201);
+  const ok=await submit({name:'Ana Cruz',email:'ana@example.com',company:'Kape Co',service:'Brand Identity',message:'We need a rebrand.',budget:'PHP 200k'});
+  expect(ok.status).toBe(201);
+  const list=(await request('inquiries?status=open')).data;expect(list).toHaveLength(1);expect(list[0].name).toBe('Ana Cruz');expect(list[0].status).toBe('new');
+  expect((await request('badges')).data.inquiries).toBe(1);
+  expect(sent.some(m=>m.to[0]==='exec@example.com'&&m.reply_to?.[0]==='ana@example.com'&&m.subject.includes('Kape Co'))).toBeTruthy();
+  /* nobody creates one from inside the workspace, and members can't delete */
+  expect((await request('inquiries','POST',{status:'new'})).status).toBe(403);
+  expect((await request('inquiries?id='+list[0].id,'DELETE',undefined,'member.test')).status).toBe(403);
+  const contacted=await request('inquiries?id='+list[0].id,'PATCH',{status:'contacted',notes:'Replied by email'},'member.test');expect(contacted.data.status).toBe('contacted');
+  const converted=(await request('inquiry-convert','POST',{id:list[0].id},'member.test')).data;
+  expect(converted.status).toBe('converted');expect(converted.clientName).toBe('Ana Cruz');expect(converted.owner).toBe('member.test');
+  expect((await request('inquiry-convert','POST',{id:list[0].id})).status).toBe(409);
+  const deal=(await request('deals')).data.find((d:any)=>d.clientId===converted.clientId);expect(deal.stage).toBe('lead');
+  /* five an hour from one address */
+  for(let i=0;i<4;i++)expect((await submit({name:'Ana',email:'ana@example.com',message:'again'})).status).toBe(201);
+  expect((await submit({name:'Ana',email:'ana@example.com',message:'again'})).status).toBe(429);
+ }finally{globalThis.fetch=realFetch;if(realKey===undefined)delete process.env.RESEND_API_KEY;else process.env.RESEND_API_KEY=realKey;}
+});
+
+test('forgotten passwords: emailed one-time links and executive resets',async()=>{
+ const sent:any[]=[];const realFetch=globalThis.fetch;const realKey=process.env.RESEND_API_KEY;process.env.RESEND_API_KEY='re_test_not_a_real_key';
+ globalThis.fetch=(async(_url:any,init:any)=>{sent.push(JSON.parse(init.body));return new Response('{}',{status:200});}) as any;
+ const reset=(body:unknown,ip='198.51.100.4')=>resetPost(new Request(ORIGIN+'/api/admin/password-reset',{method:'POST',headers:{origin:ORIGIN,'content-type':'application/json','x-forwarded-for':ip},body:JSON.stringify(body)}));
+ try{
+  await db.query(`UPDATE admin_users SET email='member@example.com', password_hash=$1 WHERE username='member.test'`,[hashPassword('old-password-123')]);
+  await db.query(`UPDATE admin_users SET email='' WHERE username='other.test'`);
+  /* the same answer for a real account, an unknown one and one without email */
+  for(const username of ['member.test','nobody.here','other.test'])expect((await reset({username})).status).toBe(200);
+  expect(sent).toHaveLength(1);expect(sent[0].to).toEqual(['member@example.com']);
+  const token=String(sent[0].text).match(/reset-password#([A-Za-z0-9_-]+)/)![1];
+  expect((await (await reset({token})).json()).valid).toBe(true);
+  expect((await reset({token,newPassword:'short'})).status).toBe(400);
+  expect((await reset({token,newPassword:'member.test123'})).status).toBe(400);
+  const done=await reset({token,newPassword:'a-brand-new-password'});expect(done.status).toBe(200);
+  expect(done.headers.get('set-cookie')).toContain('__Host-zxeno_admin=');
+  const row=(await db.query<any>(`SELECT password_hash, must_change_password FROM admin_users WHERE username='member.test'`)).rows[0];
+  expect(verifyPassword('a-brand-new-password',row.password_hash)).toBeTruthy();expect(row.must_change_password).toBe(false);
+  /* once only */
+  expect((await reset({token,newPassword:'another-new-password'})).status).toBe(400);
+  expect((await (await reset({token})).json()).valid).toBe(false);
+  /* three requests per account every 15 minutes */
+  for(let i=0;i<2;i++)await reset({username:'member.test'},'198.51.100.9');
+  expect((await reset({username:'member.test'},'198.51.100.9')).status).toBe(429);
+  /* executives put an account back to its starting password; members can't */
+  /* the reset ended the sessions member.test had */
+  expect((await request('profile','GET',undefined,'member.test')).status).toBe(401);
+  expect((await request('member-password','POST',{username:'member.test'},'other.test')).status).toBe(403);
+  expect((await request('member-password','POST',{username:'exec.test'})).status).toBe(400);
+  const back=await request('member-password','POST',{username:'member.test'});expect(back.data.startingPassword).toBe('member.test123');
+  const after=(await db.query<any>(`SELECT password_hash, must_change_password FROM admin_users WHERE username='member.test'`)).rows[0];
+  expect(verifyPassword('member.test123',after.password_hash)).toBeTruthy();expect(after.must_change_password).toBe(true);
+ }finally{
+  globalThis.fetch=realFetch;if(realKey===undefined)delete process.env.RESEND_API_KEY;else process.env.RESEND_API_KEY=realKey;
+  await db.query(`UPDATE admin_users SET password_hash='unused', must_change_password=false, password_changed_at=$1 WHERE username='member.test'`,[version]);
+ }
+});
+
+test('inquiries, fuse and hold buttons, swipe notifications and the forgot-password screen in the browser',async({page})=>{
+ test.setTimeout(90000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await db.query(`INSERT INTO admin_inquiries(name,email,company,service,message,budget) VALUES('Bea Santos','bea@example.com','Halo Labs','Motion graphics','Launch film for our app, 60 seconds.','PHP 120k')`);
+ await create('announcements',{title:'Studio closed Friday',body:'Holiday.'},'member.test').catch(()=>{});
+ await create('tasks',{title:'Ping the printer',status:'todo'},'member.test');
+ await mount(page,'/');
+ await expect(page.getByRole('heading',{name:/New inquiries/})).toBeVisible();
+ await expect(page.locator('.nav-link',{hasText:'Inquiries'}).locator('.nav-badge')).toBeVisible();
+ await page.screenshot({path:'test-results/micro-dashboard.png',fullPage:false});
+ await page.goto('/inquiries');await expect(page.getByRole('heading',{name:'Inquiries',exact:true})).toBeVisible();
+ await expect(page.getByText('Launch film for our app')).toBeVisible();
+ /* tabs are a sliding segmented control */
+ await expect(page.getByRole('radiogroup',{name:'Inquiry status'})).toBeVisible();
+ await page.screenshot({path:'test-results/micro-inquiries.png',fullPage:true});
+ /* archive burns a fuse with an undo first; undo keeps it */
+ const card=page.locator('.inquiry-card',{hasText:'Bea Santos'});
+ await card.getByRole('button',{name:'Archive'}).click();await expect(card.getByRole('button',{name:'Undo'})).toBeVisible();
+ await page.screenshot({path:'test-results/micro-fuse.png'});
+ await card.getByRole('button',{name:'Undo'}).click();await page.waitForTimeout(4500);
+ expect((await db.query<any>(`SELECT status FROM admin_inquiries WHERE name='Bea Santos'`)).rows[0].status).toBe('new');
+ await card.getByRole('button',{name:'Add as client'}).click();
+ /* toasts are swipe toasts */
+ await expect(page.locator('.swipe-toast').first()).toBeVisible();await page.screenshot({path:'test-results/micro-toast.png'});
+ expect((await db.query<any>(`SELECT status FROM admin_inquiries WHERE name='Bea Santos'`)).rows[0].status).toBe('converted');
+ /* warm tooltip on icon buttons */
+ await page.locator('.icon-btn[aria-label="Create new"]').hover();await expect(page.getByRole('tooltip')).toBeVisible({timeout:3000});
+ await page.screenshot({path:'test-results/micro-tooltip.png'});
+ /* spring check on tasks */
+ await page.goto('/tasks/overview');await page.waitForTimeout(500);
+ /* notifications: unread ones are swipe rows */
+ await page.getByRole('button',{name:/^Notifications/}).click();const panel=page.getByRole('dialog',{name:'Notifications'});
+ await expect(panel.locator('.swipe-row').first()).toBeVisible();await expect(panel.getByRole('button',{name:'Notification sounds'})).toBeVisible();
+ await page.screenshot({path:'test-results/micro-notifications.png'});
+ await panel.getByRole('button',{name:'Close'}).click();
+ /* delete confirmations take a press and hold */
+ await page.goto('/roles');await page.getByRole('row',{name:/member/}).getByRole('button',{name:'Reset password'}).click();
+ const reset=page.getByRole('dialog',{name:/Reset password/});const hold=reset.getByRole('button',{name:/Hold to reset/});
+ await hold.click();await page.waitForTimeout(400);await expect(reset.getByText(/starting password/)).toBeVisible();
+ await hold.hover();await page.mouse.down();await page.waitForTimeout(1500);await page.mouse.up();
+ await expect(reset.getByText('member.test123')).toBeVisible();await page.screenshot({path:'test-results/micro-reset.png'});
+ await reset.getByRole('button',{name:'Done'}).click();
+ /* settings: theme segment and sound bell */
+ await page.goto('/settings');await expect(page.getByRole('radiogroup',{name:'Theme'})).toBeVisible();await expect(page.getByRole('button',{name:'Notification sounds'})).toBeVisible();
+ await page.screenshot({path:'test-results/micro-settings.png',fullPage:true});
+ for(const width of [390,1280]){await page.setViewportSize({width,height:900});for(const path of ['/inquiries','/']){await page.goto(path);await page.waitForTimeout(400);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),path+' at '+width).toBeTruthy();}}
+ await page.screenshot({path:'test-results/micro-mobile.png',fullPage:true});
+ expect(errors).toEqual([]);
+ await db.query(`UPDATE admin_users SET password_hash='unused', must_change_password=false, password_changed_at=$1 WHERE username='member.test'`,[version]);
+});
+
+test('the sign-in page offers a forgot-password flow',async({page})=>{
+ const html=readFileSync('admin/index.html','utf8');
+ await page.route('**/*',async route=>{if(route.request().isNavigationRequest())return route.fulfill({contentType:'text/html',body:html});return route.continue();});
+ await page.route('**/api/admin/me',route=>route.fulfill({status:401,json:{error:'Unauthorized'}}));
+ const asked:any[]=[];await page.route('**/api/admin/password-reset',async route=>{const body=route.request().postDataJSON();asked.push(body);await route.fulfill({json:body.token?{valid:false}:{ok:true}});});
+ await page.goto('/');await page.getByRole('button',{name:'Forgot password?'}).click();
+ await page.getByLabel('Username').fill('james.zxeno');await page.getByRole('button',{name:'Email me a reset link'}).click();
+ await expect(page.getByText(/reset link is on its way/)).toBeVisible();expect(asked[0]).toEqual({username:'james.zxeno'});
+ await page.screenshot({path:'test-results/forgot-sent.png'});
+ await page.goto('/reset-password#not-a-real-token-value-123');await expect(page.getByText(/expired or was already used/)).toBeVisible();
+ expect(page.url()).not.toContain('#');
 });

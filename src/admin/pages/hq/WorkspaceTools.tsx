@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Dot, Plus, Search } from 'lucide-react';
+import { Bell, CheckCheck, Dot, Plus, Search } from 'lucide-react';
 import { post, useApi } from '../../lib/api';
 import { navigate } from '../../lib/router';
 import { useWorkspace } from '../../lib/workspace';
@@ -7,7 +7,9 @@ import { useInvoiceEditor, useProjectEditor, useTaskEditor, useEditor } from '..
 import { Button, ErrorNote, Menu, Modal, SearchInput, useAction } from '../../ui/ui';
 import type { RecordRow } from './Records';
 import { eventConfig } from './config';
-import { chime } from '../../lib/sound';
+import { chime, setSoundOn, soundOn } from '../../lib/sound';
+import BellToggle from '../../ui/micro/BellToggle';
+import SwipeRow from '../../ui/micro/SwipeRow';
 
 const PAGES=[['Dashboard','/'],['Projects','/projects'],['My tasks','/tasks/mine'],['Calendar','/calendar'],['Chat','/chat'],['Approvals','/approvals'],['Asset library','/assets'],['Clients','/clients'],['Finance','/finance'],['Invoices','/invoices'],['Team','/team'],['Workload','/workload'],['Leave','/leave'],['Handbook','/handbook'],['Settings','/settings']];
 export function WorkspaceTools(){
@@ -15,6 +17,8 @@ export function WorkspaceTools(){
  const {projects,clients,team}=useWorkspace();const run=useAction();
  const notifications=useApi<RecordRow[]>('notifications');
  const unread=(notifications.data??[]).filter(n=>!n.read).length;
+ const [sound,setSound]=useState<boolean>(soundOn);
+ const markRead=async(id:string)=>{if(await run(()=>post('notifications',{ids:[id]})))notifications.reload();};
  const reloadNotifications=notifications.reload;
  /* keep the bell honest while someone sits on one page */
  useEffect(()=>{const t=setInterval(()=>{if(!document.hidden)reloadNotifications();},60000);return()=>clearInterval(t);},[reloadNotifications]);
@@ -34,8 +38,17 @@ export function WorkspaceTools(){
  return <>
   <div className="hq-tools" aria-label="Workspace tools"><Button size="sm" icon={Search} onClick={()=>setOpen(true)}>Search <kbd>Ctrl K</kbd></Button><Button size="sm" icon={Bell} className={unread?'has-unread':''} onClick={()=>{setBell(true);notifications.reload();}}>Notifications{unread>0&&<span className="unread-dot" aria-hidden="true"/>}{unread>0&&<span className="sr-only">, {unread} unread</span>}</Button><Menu label="Create new" items={[{label:'New project',icon:Plus,onSelect:()=>project.openNew()},{label:'New task',icon:Plus,onSelect:()=>task.openNew()},{label:'New event',icon:Plus,onSelect:()=>event.openNew(eventConfig.defaults)},{label:'New invoice',icon:Plus,onSelect:()=>invoice.openNew()}]}/></div>
   <Modal open={open} title="Search workspace" onClose={()=>setOpen(false)}><SearchInput value={q} onChange={setQ} placeholder="Projects, clients, people, tasks, files or pages"/>{[tasks.error,docs.error,assets.error].filter(Boolean).map((e,i)=><ErrorNote key={i} message={e}/>)}<div className="hq-search-results">{results.map((e,i)=><button className="nav-link" key={i} onClick={()=>{setOpen(false);navigate(e.to);}}>{e.title}<small className="muted">{e.kind}</small></button>)}{!results.length&&<p className="muted">No results found.</p>}</div></Modal>
-  <Modal open={bell} title="Notifications" onClose={()=>setBell(false)} footer={<Button disabled={!unread} onClick={async()=>{if(await run(()=>post('notifications',{ids:(notifications.data??[]).filter(n=>!n.read).map(n=>n.id)}),'Notifications marked read'))notifications.reload();}}>Mark all read</Button>}>
-   {notifications.error&&<ErrorNote message={notifications.error} onRetry={notifications.reload}/>}<div className="hq-stack">{notifications.data?.map(n=><article key={n.id} className="panel hq-pad"><strong>{!n.read&&<Dot aria-label="Unread" className="notification-unread"/>}{n.actorName}</strong> {n.action} {n.summary}<span className="cell-sub">{new Date(n.createdAt).toLocaleString()}</span>{!n.read&&<Button size="sm" onClick={async()=>{if(await run(()=>post('notifications',{ids:[n.id]})))notifications.reload();}}>Mark read</Button>}</article>)}{notifications.data?.length===0&&<p className="muted">You're all caught up.</p>}</div>
+  <Modal open={bell} title="Notifications" onClose={()=>setBell(false)} footer={<>
+   <BellToggle size="sm" label="Notification sounds" offLabel="Sounds off" onLabel="Sounds on" count={unread} pressed={sound} onChange={v=>{setSound(v);setSoundOn(v);if(v)chime.notification();}}/>
+   <Button disabled={!unread} onClick={async()=>{if(await run(()=>post('notifications',{ids:(notifications.data??[]).filter(n=>!n.read).map(n=>n.id)}),'Notifications marked read'))notifications.reload();}}>Mark all read</Button>
+  </>}>
+   {notifications.error&&<ErrorNote message={notifications.error} onRetry={notifications.reload}/>}
+   {unread>0&&<p className="hint">Swipe an unread notification left to mark it read.</p>}
+   <div className="notification-list">{notifications.data?.map(n=>{
+    const body=<div className={`notification-card ${n.read?'is-read':''}`}><span><strong>{!n.read&&<Dot aria-label="Unread" className="notification-unread"/>}{n.actorName}</strong> {n.action} {n.summary}</span><div className="notification-foot"><span className="cell-sub">{new Date(n.createdAt).toLocaleString()}</span>{!n.read&&<Button size="sm" onClick={()=>markRead(n.id)}>Mark read</Button>}</div></div>;
+    /* a read notification is just a card; an unread one can be swiped away */
+    return n.read?<div key={n.id}>{body}</div>:<SwipeRow key={n.id} height="auto" radius={16} label={`Notification from ${n.actorName}`} actions={[{id:'read',label:'Read',icon:<CheckCheck size={20} aria-hidden/>}]} onCommit={()=>markRead(n.id)}>{body}</SwipeRow>;
+   })}{notifications.data?.length===0&&<p className="muted">You're all caught up.</p>}</div>
   </Modal>{project.element}{task.element}{invoice.element}{event.element}
  </>;
 }
