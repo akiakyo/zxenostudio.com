@@ -4539,3 +4539,84 @@ a.hero-tile:hover {
     animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
   }
 }
+
+/* Task checklists */
+.checklist {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.checklist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.checklist-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 15px;
+}
+.checklist-items {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.checklist-items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 0 8px;
+  border-radius: 10px;
+}
+.checklist-items li:hover {
+  background: var(--card-2);
+}
+:root .checklist-items .spring-check {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.checklist-items .icon-btn {
+  opacity: 0.55;
+}
+.checklist-items li:hover .icon-btn,
+.checklist-items .icon-btn:focus-visible {
+  opacity: 1;
+}
+.checklist-add {
+  display: flex;
+  gap: 8px;
+}
+.checklist-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--card);
+}
+.checklist-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.checklist-count.is-complete {
+  color: var(--brand-deep);
+}
+:root[data-theme="dark"] .checklist-count.is-complete {
+  color: var(--brand-lift);
+}

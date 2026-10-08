@@ -4,6 +4,7 @@ import { patch, query, useApi } from "../lib/api";
 import { label, options, relativeDay } from "../lib/format";
 import type { Task, TaskStatus } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
+import { ChecklistCount } from "../ui/checklist";
 import { useTaskEditor } from "../ui/editors";
 import {
   Avatar,
@@ -115,6 +116,7 @@ export function TaskBoardPage() {
                         <Badge tone={task.priority === "urgent" ? "red" : task.priority === "high" ? "amber" : task.priority === "medium" ? "blue" : "neutral"}>
                           {label(task.priority)}
                         </Badge>
+                        <ChecklistCount done={task.checklistDone} total={task.checklistTotal} />
                         {task.dueDate && (
                           <span className={`board-card-due ${task.overdue ? "is-overdue" : ""}`}>{relativeDay(task.dueDate)}</span>
                         )}

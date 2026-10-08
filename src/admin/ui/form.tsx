@@ -1,7 +1,7 @@
 /* Declarative forms: each section lists its fields once and FormModal renders,
    collects and submits them. Empty inputs are sent as "", which the API stores
    as blank text or no value. */
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 import { useWorkspace } from "../lib/workspace";
 import SpringCheck from "./micro/SpringCheck";
 import { Button, Modal } from "./ui";
@@ -61,6 +61,7 @@ export function FormModal({
   onClose,
   onSubmit,
   size = "md",
+  extra,
 }: {
   open: boolean;
   title: string;
@@ -70,6 +71,8 @@ export function FormModal({
   onClose: () => void;
   onSubmit: (values: FormValues) => Promise<unknown>;
   size?: "sm" | "md" | "lg";
+  /* shown under the form, outside it, so its own inputs never submit it */
+  extra?: ReactNode;
 }) {
   const formId = useId();
   const [values, setValues] = useState<FormValues>(() =>
@@ -133,6 +136,7 @@ export function FormModal({
           </p>
         )}
       </form>
+      {extra}
     </Modal>
   );
 }

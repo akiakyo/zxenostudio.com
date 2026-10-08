@@ -1,11 +1,12 @@
 /* The create/edit dialog for each kind of record, shared by every page that
    offers "New …" or "Edit" for it (a task can be added from My tasks, the
    board, a project or the dashboard, and should look the same everywhere). */
-import { useState } from "react";
-import { patch, post } from "../lib/api";
+import { useRef, useState, type ReactNode } from "react";
+import { api, patch, post } from "../lib/api";
 import { options, todayIso, weekStart } from "../lib/format";
 import { useWorkspace } from "../lib/workspace";
 import { FormModal, type FieldDef, type FormValues } from "./form";
+import { TaskChecklist } from "./checklist";
 import { useUi } from "./ui";
 
 type Config = {
@@ -16,6 +17,12 @@ type Config = {
   /* lookups to refresh after saving (projects and clients feed other forms) */
   refreshLookups?: boolean;
   prepare?: (values: FormValues, editing: boolean) => FormValues;
+  /* more under the form: the record being edited, or undefined for a new one */
+  extra?: (row: any) => ReactNode;
+  /* runs after a save, before the dialog reports it (a task's new checklist) */
+  afterSave?: (saved: any, created: boolean) => Promise<any>;
+  /* runs when the dialog closes, saved or not */
+  onClose?: (row: any) => void;
 };
 
 export function useEditor<T extends { id: string }>(
@@ -42,12 +49,18 @@ export function useEditor<T extends { id: string }>(
       fields={fields}
       size={config.size}
       initial={(state.row as FormValues | undefined) ?? state.preset ?? {}}
-      onClose={() => setState((s) => ({ ...s, open: false }))}
+      extra={config.extra?.(state.row)}
+      onClose={() => {
+        setState((s) => ({ ...s, open: false }));
+        config.onClose?.(state.row);
+      }}
       onSubmit={async (values) => {
         const body = config.prepare ? config.prepare(values, editing) : values;
-        const saved = state.row
+        let saved = state.row
           ? await patch<T>(`${config.resource}?id=${state.row.id}`, body)
           : await post<T>(config.resource, body);
+        /* it may hand back a fresher copy of the record */
+        saved = (await config.afterSave?.(saved, !editing)) ?? saved;
         toast(editing ? "Saved" : `${capitalize(config.noun)} created`);
         if (config.refreshLookups) reloadLookups();
         onSaved?.(saved, !editing);
@@ -123,16 +136,55 @@ export function useTaskEditor(
   privateTask: boolean,
   onSaved?: (row: any, created: boolean) => void,
 ) {
-  return useEditor(
+  /* a new task's checklist is kept here until the task exists to hold it */
+  const [draft, setDraft] = useState<string[]>([]);
+  /* ticked or added items while editing, so the list behind can refresh */
+  const touched = useRef(false);
+  const editor = useEditor(
     {
       resource: "tasks",
       noun: privateTask ? "private task" : "task",
       fields: taskFields(privateTask),
       prepare: (values, editing) =>
         privateTask && !editing ? { ...values, isPrivate: true } : values,
+      extra: (row) => (
+        <TaskChecklist
+          taskId={row?.id}
+          draft={draft}
+          onDraftChange={setDraft}
+          onChanged={() => {
+            touched.current = true;
+          }}
+        />
+      ),
+      afterSave: async (saved, created) => {
+        if (!created) return;
+        if (!draft.length) return;
+        for (const title of draft) await post("task-checklist", { taskId: saved.id, title });
+        setDraft([]);
+        return api(`tasks?id=${saved.id}`);
+      },
+      onClose: async (row) => {
+        if (!row || !touched.current) return;
+        touched.current = false;
+        const fresh = await api(`tasks?id=${row.id}`).catch(() => null);
+        if (fresh) onSaved?.(fresh, false);
+      },
     },
     onSaved,
   );
+  return {
+    ...editor,
+    openNew: (preset: FormValues = {}) => {
+      setDraft([]);
+      touched.current = false;
+      editor.openNew(preset);
+    },
+    openEdit: (row: any) => {
+      touched.current = false;
+      editor.openEdit(row);
+    },
+  };
 }
 
 export const INVOICE_FIELDS: FieldDef[] = [

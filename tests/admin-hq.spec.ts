@@ -494,3 +494,49 @@ test('interface sounds: taps, checks, fuse undo and hold to confirm',async({page
  await expect.poll(log).toContain('confirm');
  expect((await log()).filter(n=>n==='tap').length).toBeGreaterThan(1);
 });
+
+test('task checklists: items in order, progress on the task, private stays private',async()=>{
+ const task=await create('tasks',{title:'Prepare launch kit',status:'todo'},'member.test');
+ const a=await create('task-checklist',{taskId:task.id,title:'Export logos'},'member.test');
+ const b=await create('task-checklist',{taskId:task.id,title:'Write captions'},'other.test');
+ expect(b.position).toBeGreaterThan(a.position);
+ expect((await request(`task-checklist?id=${a.id}`,'PATCH',{done:true},'other.test')).data.done).toBe(true);
+ const items=(await request(`task-checklist?taskId=${task.id}`)).data;expect(items.map((i:any)=>i.title)).toEqual(['Export logos','Write captions']);
+ const row=(await request(`tasks?id=${task.id}`)).data;expect(row.checklistTotal).toBe(2);expect(row.checklistDone).toBe(1);
+ expect((await request('task-checklist','POST',{taskId:task.id,title:''})).status).toBe(400);
+ expect((await request(`task-checklist?id=${a.id}`,'PATCH',{taskId:task.id})).status).toBe(400);
+ /* ticking boxes stays out of the activity feed */
+ expect((await request('activity')).data.some((x:any)=>x.entityType==='checklist item')).toBeFalsy();
+ /* a private task's checklist is its owner's alone */
+ const mine=await create('tasks',{title:'Private errand',isPrivate:true},'member.test');
+ const item=await create('task-checklist',{taskId:mine.id,title:'Secret step'},'member.test');
+ expect((await request('task-checklist','POST',{taskId:mine.id,title:'Snoop'},'other.test')).status).toBe(404);
+ expect((await request(`task-checklist?taskId=${mine.id}`,'GET',undefined,'other.test')).data).toEqual([]);
+ expect((await request(`task-checklist?id=${item.id}`,'DELETE',undefined,'other.test')).status).toBe(404);
+ /* items go with their task */
+ await request(`tasks?id=${task.id}`,'DELETE',undefined,'member.test');
+ expect((await db.query(`SELECT count(*)::int AS n FROM admin_task_checklist WHERE task_id=$1`,[task.id])).rows[0]).toEqual({n:0});
+});
+
+test('a checklist can be built with a new task and ticked off in the editor',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await mount(page,'/tasks/mine');await expect(page.getByRole('heading',{name:'My tasks',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:/New task/}).first().click();
+ const modal=page.getByRole('dialog',{name:'New task'});
+ await modal.getByRole('textbox',{name:/^Task/}).fill('Ship the poster series');
+ const add=modal.getByLabel('Add a checklist item');
+ await add.fill('Final colour pass');await add.press('Enter');
+ await add.fill('Export print PDFs');await add.press('Enter');
+ await expect(modal.getByText('These are saved with the task.')).toBeVisible();
+ await modal.getByRole('button',{name:'Create task'}).click();await expect(modal).not.toBeVisible();
+ const row=page.locator('.task-row',{hasText:'Ship the poster series'});
+ await expect(row.locator('.checklist-count')).toHaveText(/0\/2/);
+ await row.locator('.task-main').click();
+ const edit=page.getByRole('dialog',{name:'Edit task'});
+ await edit.getByRole('checkbox',{name:'Final colour pass'}).click();
+ await expect(edit.getByText('1 of 2 done')).toBeVisible();
+ await page.screenshot({path:'test-results/task-checklist.png'});
+ await edit.getByRole('button',{name:'Close'}).click();
+ await expect(row.locator('.checklist-count')).toHaveText(/1\/2/);
+ expect(errors).toEqual([]);
+});

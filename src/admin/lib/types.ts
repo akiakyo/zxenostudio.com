@@ -109,6 +109,8 @@ export type Task = Authored & {
   isPrivate: boolean;
   completedAt: string | null;
   overdue: boolean;
+  checklistTotal?: number;
+  checklistDone?: number;
 };
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "void";

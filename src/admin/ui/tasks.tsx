@@ -4,6 +4,7 @@ import { relativeDay } from "../lib/format";
 import { Link } from "../lib/router";
 import type { Task } from "../lib/types";
 import { useWorkspace } from "../lib/workspace";
+import { ChecklistCount } from "./checklist";
 import SpringCheck from "./micro/SpringCheck";
 import { Avatar, Badge, Menu, useAction, useUi } from "./ui";
 
@@ -75,6 +76,7 @@ export function TaskRow({
             </span>
           )}
           {task.status === "in_progress" && <span>In progress</span>}
+          <ChecklistCount done={task.checklistDone} total={task.checklistTotal} />
         </span>
       </button>
       {(task.priority === "high" || task.priority === "urgent") && !done && (

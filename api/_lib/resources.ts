@@ -171,7 +171,9 @@ export const tasks: Resource = {
     dueDate: { kind: "date", label: "Due date" },
     isPrivate: { kind: "bool", label: "Private" },
   },
-  select: `t.*, p.name AS project_name, u.name AS assignee_name, ${authorName}`,
+  select: `t.*, p.name AS project_name, u.name AS assignee_name, ${authorName},
+    (SELECT count(*)::int FROM admin_task_checklist c WHERE c.task_id = t.id) AS checklist_total,
+    (SELECT count(*)::int FROM admin_task_checklist c WHERE c.task_id = t.id AND c.done) AS checklist_done`,
   joins: `LEFT JOIN admin_projects p ON p.id = t.project_id
     LEFT JOIN admin_users u ON u.username = t.assignee ${author}`,
   order: "t.due_date IS NULL, t.due_date, t.created_at DESC",
@@ -491,6 +493,48 @@ export const briefs: Resource = {
       : "updated",
 };
 
+/* The checklist inside a task. Whoever can see a task can work its checklist;
+   a private task's checklist is as private as the task. */
+const MAX_CHECKLIST_ITEMS = 100;
+export const taskChecklist: Resource = {
+  table: "admin_task_checklist",
+  entity: "checklist item",
+  fields: {
+    taskId: { kind: "uuid", label: "Task", required: true },
+    title: { kind: "text", label: "Checklist item", required: true, max: 200 },
+    done: { kind: "bool", label: "Done" },
+    position: { kind: "int", label: "Position", min: 0, max: 100000 },
+  },
+  select: "t.*",
+  joins: "JOIN admin_tasks k ON k.id = t.task_id",
+  order: "t.position, t.created_at",
+  visible: (session, p) =>
+    `(NOT k.is_private OR k.created_by = ${p.add(session.username)})`,
+  filters: { taskId: equals("t.task_id", isUuid) },
+  title: (row) => row.title,
+  /* ticking boxes would flood the activity feed */
+  logged: () => false,
+  prepareCreate: async (session, values) => {
+    const task = await one(
+      `SELECT is_private, created_by,
+              (SELECT count(*)::int FROM admin_task_checklist WHERE task_id = admin_tasks.id) AS items,
+              (SELECT coalesce(max(position) + 1, 0) FROM admin_task_checklist WHERE task_id = admin_tasks.id) AS next
+       FROM admin_tasks WHERE id = $1`,
+      [values.get("task_id")],
+    );
+    if (!task || (task.is_private && task.created_by !== session.username)) {
+      throw new HttpError(404, "Task not found");
+    }
+    if (task.items >= MAX_CHECKLIST_ITEMS) {
+      throw new HttpError(400, `A checklist holds up to ${MAX_CHECKLIST_ITEMS} items`);
+    }
+    if (!values.has("position")) values.set("position", task.next);
+  },
+  prepareUpdate: (_session, values) => {
+    if (values.has("task_id")) throw new HttpError(400, "A checklist item stays on its task");
+  },
+};
+
 export const RESOURCES: Record<string, Resource> = {
   ...HQ_RESOURCES,
   inquiries,
@@ -498,6 +542,7 @@ export const RESOURCES: Record<string, Resource> = {
   projects,
   milestones,
   tasks,
+  "task-checklist": taskChecklist,
   invoices,
   assets,
   announcements,
