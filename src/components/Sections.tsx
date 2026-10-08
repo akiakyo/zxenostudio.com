@@ -153,7 +153,15 @@ export function Team() {
           One studio, creating together.
         </p>
       </div>
-      <TeamTree />
+      {/* leadership first, then everyone making the work, each as its own chart */}
+      <div className="team-group">
+        <h3 className="team-group-title">The executives</h3>
+        <TeamTree order={EXECUTIVE_TIERS} />
+      </div>
+      <div className="team-group">
+        <h3 className="team-group-title">The team</h3>
+        <TeamTree order={TEAM_TIERS} />
+      </div>
     </section>
   );
 }
@@ -169,29 +177,26 @@ function roleColor(role: string) {
   if (r.includes("editor") || r.includes("colorist")) return "editor";
   if (r.includes("software engineer") || r.includes("full stack developer"))
     return "engineer";
-  if (r.includes("3d") || r.includes("motion designer")) return "designer";
+  if (r.includes("3d") || r.includes("motion designer") || r.includes("graphic designer"))
+    return "designer";
   return undefined;
 }
 
 // Root to leaves: everyone is grouped under the same tier their badge colour
 // already reads as, so the org chart and the colour-coding always agree.
-const TIER_ORDER = [
-  "founder",
-  "co-founder",
-  "cmo",
-  "engineer",
-  "designer",
-  "editor",
-] as const;
+// Executives get their own chart; anyone whose role matches no tier joins
+// the team chart at the end.
+const EXECUTIVE_TIERS = ["founder", "co-founder", "cmo"];
+const TEAM_TIERS = ["engineer", "designer", "editor", "other"];
 
-function teamTiers() {
+function teamTiers(order: string[]) {
   const groups = new Map<string, typeof team>();
   for (const member of team) {
     const key = roleColor(member.role) ?? "other";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(member);
   }
-  return [...TIER_ORDER, "other"]
+  return order
     .filter((key) => groups.has(key))
     .map((key) => ({ key, members: groups.get(key)! }));
 }
@@ -201,8 +206,8 @@ function teamTiers() {
    as a family tree, just drawn with real DOM coordinates so it survives the
    2-column reflow on mobile. Recomputed on resize/font-load since the reveal
    and reflow both shift card positions after the first paint. */
-function TeamTree() {
-  const tiers = teamTiers();
+function TeamTree({ order }: { order: string[] }) {
+  const tiers = teamTiers(order);
   const rootRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const cardRefs = useRef<(HTMLDivElement | null)[][]>([]);

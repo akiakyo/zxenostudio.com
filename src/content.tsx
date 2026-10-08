@@ -277,4 +277,9 @@ export const team = [
     role: "Colorist / Video Editor",
     techStack: ["DaVinci Resolve", "Premiere Pro", "After Effects"],
   },
+  {
+    name: "James Rodbaq Ordena",
+    role: "Graphic Designer",
+    techStack: ["Photoshop", "Illustrator", "Figma", "Canva"],
+  },
 ];
